@@ -149,7 +149,7 @@ class TrainingConfig:
     sub_process_ratios: Dict[str, float] = field(default_factory=lambda:{ # decide the
         # HINT: each rate is multiplied together to final rate, e.g. if process id exist 2x with rate 2, final rate is 4
         "signal":{}, # empty categorizes are set to 1 by default
-        "tt":{(1100,1200):1, 1300:1}, # groups are possible, and mixes are allowed
+        "tt":{(1100,1200):2, 1300:1}, # groups are possible, and mixes are allowed
         "dy":{51667: 1, 51683: 1, 51664: 1, 51680: 1, 51720: 1, 51723: 1, 51726: 1,
         51729: 1, 51732: 1, 51735: 1, 51674: 1, 51690: 1, 51665: 1, 51681: 1,
         51661: 1, 51677: 1, 51670: 1, 51671: 1, 51672: 1, 51673: 1, 51675: 1,

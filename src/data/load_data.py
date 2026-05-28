@@ -42,7 +42,7 @@ def root_to_numpy(
     #   used for baseline cut -> tau2_isolated, lepton_os, channel_id
     #   event number used for k-fold splitting -> event
     #   oversampling weight that defines the fraction within batch -> normalization_weight
-    meta_fields = {"process_id", "tau2_isolated", "leptons_os", "channel_id", "event", "normalization_weight"}
+    meta_fields = {"process_id", "tau2_isolated", "leptons_os", "channel_id", "event", "normalization_weight", "category_id"}
 
     # training and evaluation phase space are not the same
     # a transfer weight can be calculated using the product of these weights
