@@ -81,7 +81,7 @@ class ModelBuildingConfig:
     batch_norm_eps: float = 0.001 # epsilon denominator of batch norm - increase stability Marcel: 0.001
     LBN_M: int = 10 # number of particles of the lbn network Marcel: 10
     last_activation_fn: LAST_ACTIVATION_CHOICE = "Softmax" # add activation function after last layer
-    use_last_activation: bool = True # whether to use the last activation function, can be deactivated if not wanted - for example when using a loss function that already includes an activation like cross entropy, Marcel: False
+    use_last_activation: bool = False # whether to use the last activation function, can be deactivated if not wanted - for example when using a loss function that already includes an activation like cross entropy, Marcel: False
 
     #STD Layers
     mean: Optional[Any] = None # these values are determined by your data
@@ -142,14 +142,16 @@ class TrainingConfig:
     train_ratio: float = 0.75 # split ratio for k-fold data into train and validation
     t_batch_size: int = 4096 * 10
     v_batch_size: int = -1 # validation batch size, -1 = full set,
-    save_model_name: str = "cross_entropy_v1" # name of the model used to save
+    save_model_name: str = "dl_4-sl_1-fh_1" # name of the model used to save
 
     # Sampler Settings
     sample_ratio: Dict[str, float] = field(default_factory=lambda:{"dy": 1 / 3, "tt": 1 / 3, "hh": 1 / 3}) # decide the ratio of tt, dy and hh within a batch
     sub_process_ratios: Dict[str, float] = field(default_factory=lambda:{ # decide the
         # HINT: each rate is multiplied together to final rate, e.g. if process id exist 2x with rate 2, final rate is 4
         "signal":{}, # empty categorizes are set to 1 by default
-        "tt":{(1100,1200):2, 1300:1}, # groups are possible, and mixes are allowed
+        "tt_fh":{1300:1}, # groups are possible, and mixes are allowed
+        "tt_sl": {1100:1},
+        "tt_dl" : {1200:4},
         "dy":{51667: 1, 51683: 1, 51664: 1, 51680: 1, 51720: 1, 51723: 1, 51726: 1,
         51729: 1, 51732: 1, 51735: 1, 51674: 1, 51690: 1, 51665: 1, 51681: 1,
         51661: 1, 51677: 1, 51670: 1, 51671: 1, 51672: 1, 51673: 1, 51675: 1,
@@ -158,7 +160,7 @@ class TrainingConfig:
         51668: 1, 51684: 1, 51663: 1, 51679: 1,
         },
     })
-    use_sub_process_ratios: Tuple[str] = ("signal", "tt", "dy")
+    use_sub_process_ratios: Tuple[str] = ("signal", "tt_fh", "tt_sl", "tt_dl", "dy")
     sample_attributes: Tuple[str, ...] = (
         "continuous",
         "categorical",
