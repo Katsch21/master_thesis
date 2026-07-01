@@ -99,10 +99,13 @@ class ParserBuilder():
 
     def add_evaluate_choices(self):
         def choices(value):
-            value = (value,) if isinstance(value, str) else value
+            value = value.split(",")
+            value = [v.strip() for v in value]
             value_possible_choices = ("test", "training", "validation")
 
-            if not any([value not in value_possible_choices]):
+            _check = [v in value_possible_choices for v in value]
+
+            if not all(_check):
                 raise ValueError(f"Evaluate is {value}, but can only be one of these: {value_possible_choices}")
             return value
 
