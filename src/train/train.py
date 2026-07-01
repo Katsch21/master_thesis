@@ -128,6 +128,7 @@ def main(**kwargs):
                 tensorboard_writer.log_loss({"batch_loss": t_loss.item()}, step=current_iteration)
                 current_lr = optimizer_inst.param_groups[0]["lr"]
                 logger_inst.training(f"T-It: {current_iteration} - LR: {current_lr} - batch loss: {t_loss.item():.2E}")
+                tensorboard_writer.log_lr(current_lr, step=current_iteration)
             #----
             #### Evaluation of training and validation data, logging and checkpointing
             #----

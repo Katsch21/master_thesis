@@ -31,6 +31,7 @@ def evaluate_model_on_fold(
     full_config: Literal["DataClass"],
     folds: Iterable[int],
     evaluate_on: Iterable[str],
+    add_activation: str | None = None
     ) -> torch.tensor:
     """
     Function to evaluate *folds* with given *model_inst*.
@@ -56,6 +57,13 @@ def evaluate_model_on_fold(
         logger_inst.info("Loading Data")
         events = load_data.get_data(full_config.dataset_config, ignore_cache=False, _save_cache=False)
 
+        if add_activation.lower() == "softmax":
+            last_fn = torch.nn.functional.softmax
+        elif add_activation.lower() == "sigmoid":
+            last_fn = torch.nn.functional.sigmoid
+        else:
+            last_fn = torch.nn.Identity()
+
         for fold in folds:
             dnn_scores[fold] = {}
 
@@ -77,6 +85,7 @@ def evaluate_model_on_fold(
             for uid, uid_events in splitted_events.items():
                 continuous_inputs, categorical_inputs = uid_events["continuous"], uid_events["categorical"]
                 scores = model_inst(categorical_inputs=categorical_inputs, continuous_inputs=continuous_inputs)
+                scores = last_fn(scores, dim=1)
                 dnn_scores[fold][_evaluate_on][uid] = scores
         return dnn_scores
 
@@ -102,6 +111,7 @@ if __name__ == "__main__":
         full_config=full_config,
         folds=args.fold,
         evaluate_on=args.evaluate_on,
+        add_activation=args.add_activation,
         )
 
     torch.save(evaluated_data, args.file_path)
