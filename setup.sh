@@ -156,6 +156,7 @@ prepare_cf(){
 activate_cf(){
     echo "Activate cf sandbox at ${CF_SANDBOX}"
     finish_setup
+    cd $DNN_DIR
     cf_sandbox "${CF_SANDBOX}"
 }
 

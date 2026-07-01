@@ -142,7 +142,7 @@ class TrainingConfig:
     train_ratio: float = 0.75 # split ratio for k-fold data into train and validation
     t_batch_size: int = 4096 * 10
     v_batch_size: int = -1 # validation batch size, -1 = full set,
-    save_model_name: str = "parametrized_binning" # name of the model used to save
+    save_model_name: str = "cross_entropy_v1" # name of the model used to save
 
     # Sampler Settings
     sample_ratio: Dict[str, float] = field(default_factory=lambda:{"dy": 1 / 3, "tt": 1 / 3, "hh": 1 / 3}) # decide the ratio of tt, dy and hh within a batch
@@ -183,7 +183,7 @@ class TrainingConfig:
 
 @dataclass
 class SchedulerConfig:
-    scheduler_chain: Tuple[SCHEDULER_CHOICE, ...] = ("linear", "step") # schedulers used in chain
+    scheduler_chain: Tuple[SCHEDULER_CHOICE, ...] = ("linear", "cosine_annealing") # schedulers used in chain
     config_chain: Optional[Tuple[Any, ...]] = None # list of configs corresponding to the schedulers in the scheduler chain
     scheduler_cls_chain: Optional[Tuple[Any, ...]] = None # list of scheduler classes corresponding to the schedulers in the scheduler chain, if None is given, it is assumed that the scheduler class can be derived from the scheduler choice by adding "LR" at the end, for example "CosineAnnealingLR" for "cosine"
     milestones: Tuple[int, ...] = (500,) # intervals after which the LR scheduler is swapped
@@ -198,7 +198,7 @@ class SchedulerConfig:
 
     @dataclass
     class CosineAnnealingLRConfig():
-        T_max: int = 10000 # maximum number of iterations
+        T_max: int = 15000 # maximum number of iterations
         eta_min: float = 1e-7 # minimum learning rate
 
     @dataclass
