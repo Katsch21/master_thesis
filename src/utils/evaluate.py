@@ -86,7 +86,13 @@ def evaluate_model_on_fold(
                 continuous_inputs, categorical_inputs = uid_events["continuous"], uid_events["categorical"]
                 scores = model_inst(categorical_inputs=categorical_inputs, continuous_inputs=continuous_inputs)
                 scores = last_fn(scores, dim=1)
-                dnn_scores[fold][_evaluate_on][uid] = scores
+                data = {
+                    "scores": scores,
+                    "event_weight": uid_events["product_of_weights"],
+                    "event_id": uid_events["event_id"]
+                    }
+                dnn_scores[fold][_evaluate_on][uid] = data
+
         return dnn_scores
 
 

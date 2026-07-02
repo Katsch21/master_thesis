@@ -142,7 +142,7 @@ class TrainingConfig:
     train_ratio: float = 0.75 # split ratio for k-fold data into train and validation
     t_batch_size: int = 4096 * 10
     v_batch_size: int = -1 # validation batch size, -1 = full set,
-    save_model_name: str = "dl_4-sl_1-fh_1" # name of the model used to save
+    save_model_name: str = "dl_6-sl_1-fh_1" # name of the model used to save
 
     # Sampler Settings
     sample_ratio: Dict[str, float] = field(default_factory=lambda:{"dy": 1 / 3, "tt": 1 / 3, "hh": 1 / 3}) # decide the ratio of tt, dy and hh within a batch
@@ -151,7 +151,7 @@ class TrainingConfig:
         "signal":{}, # empty categorizes are set to 1 by default
         "tt_fh":{1300:1}, # groups are possible, and mixes are allowed
         "tt_sl": {1100:1},
-        "tt_dl" : {1200:4},
+        "tt_dl" : {1200:6},
         "dy":{51667: 1, 51683: 1, 51664: 1, 51680: 1, 51720: 1, 51723: 1, 51726: 1,
         51729: 1, 51732: 1, 51735: 1, 51674: 1, 51690: 1, 51665: 1, 51681: 1,
         51661: 1, 51677: 1, 51670: 1, 51671: 1, 51672: 1, 51673: 1, 51675: 1,
