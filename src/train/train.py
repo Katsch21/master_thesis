@@ -4,6 +4,7 @@ from __future__ import annotations
 import dataclasses
 
 # package imports
+from collections import deque
 import numpy as np
 import torch
 
@@ -114,6 +115,7 @@ def main(**kwargs):
         ### training loop
         #----
         logger_inst.info("Start training loop")
+        last_losses = deque([10, 10, 10, 10, 10, 10, 10, 10, 10, 10], maxlen = 10)
         for current_iteration in range(1_000_000):
             t_loss = training_loop(
                 model = model_inst,
@@ -189,7 +191,18 @@ def main(**kwargs):
 
 
                 ### checkpoint criteria checks and saving
-                if checkpoint_inst.check_criteria(eval_v_loss):
+                # ---
+                # my own application of setting a checkpoint:
+                # create a checkpoint if the last 5 validation losses are smaller than the previous best loss
+                # if checkpoint_inst.check_criteria(eval_v_loss):
+                #     small_loss_count += 1
+                #     print("small loss count:", small_loss_count)
+                # elif not checkpoint_inst.check_criteria(eval_v_loss):
+                #     small_loss_count = 0
+                last_losses.append(eval_v_loss.cpu().item())
+                mean_last_losses = np.mean(last_losses)
+
+                if checkpoint_inst.check_criteria(mean_last_losses):
                     checkpoint_inst.create_checkpoint(
                         model=model_inst,
                         optimizer=optimizer_inst,

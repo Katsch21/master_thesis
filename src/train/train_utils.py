@@ -87,6 +87,7 @@ def log_metrics(
 
     # outputs of network
     pred, tar, weights = sampler_output
+    pred, tar, weights = pred.detach().cpu(), tar.detach().cpu(), weights.detach().cpu()
 
     # log crossentropy as metric
     # weights are EVENT WEIGHTS, but cross entropy want to have cls weights
