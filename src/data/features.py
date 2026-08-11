@@ -39,6 +39,7 @@ def prefix_map():
     "prod20": "reg_dnn_moe",
     "prod19": "res_dnn_pnet",
     "prod24" : "reg_dnn_moe",
+    "prod27_dyext": "reg_dnn_moe",
     }
     return stem_to_prefix[stem]
 
