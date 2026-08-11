@@ -14,7 +14,7 @@ export LOG_LEVEL="DEBUG"
 export FILE_LOG_LEVEL="DEBUG"
 
 # location where the input data can be found.
-export ERA=prod20 # possible eras: prod14, prod20, prod24 (20 only has 22pre)
+export ERA=prod27_dyext # possible eras: prod14, prod20, prod24 (20 only has 22pre)
 export TRAINING_ROOT="/data/dust/user/riegerma/hh2bbtautau/run3_training_data" # normal training root
 # export TRAINING_ROOT="/data/dust/user/wiedersb/machine_learning_data" # quintus training root
 export INPUT_DATA_DIR="${TRAINING_ROOT}/${ERA}"
