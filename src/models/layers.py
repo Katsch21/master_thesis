@@ -279,6 +279,8 @@ class CategoricalTokenizer(torch.nn.Module):  # noqa: F811
     def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
         # shift input array by their respective minimum and slice translation accordingly
         # map to int to be used as indices
+        from IPython import embed; embed(header="MESSAGE Line 499 | File: layers.py")
+
         shifted = (x - self.min).to(torch.int32)
         output = self.map[self.indices, shifted]
         return output
@@ -369,6 +371,7 @@ class CategoricalInputLayer(torch.nn.Module):
         self.padding_categorical_layer = dummy_identity(padding_categorical_layer)
 
     def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
+
         x = self.padding_categorical_layer(x)
         x = self.embedding_layer(x)
         return x
@@ -417,6 +420,7 @@ class OptionalInputLayer(torch.nn.Module):  # noqa: F811
         self.ndim = self.continuous_layer.ndim + self.categorical_layer.ndim
 
     def forward(self, *, categorical_inputs, continuous_inputs):
+
         x = torch.cat(
             [
                 self.continuous_layer(continuous_inputs),
