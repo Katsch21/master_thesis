@@ -278,7 +278,6 @@ def get_batch_statistics_from_sampler(sampler=None, padding_values=None, feature
             "Returning dummy values: mean = 0 and std = 1"
             )
         return mean, std
-
     logger_inst.info("Calculate mean and std over all subphase spaces")
     # filter keys after processes
     weighted_means = []
@@ -308,8 +307,11 @@ def get_batch_statistics_from_sampler(sampler=None, padding_values=None, feature
         include_mask = ~(array == ignore_tensor)
         masked_mean = torch.masked.mean(input=array, mask=include_mask, dim=0, dtype=torch.float64)
         masked_var = torch.masked.var(input=array, mask=include_mask, dim=0, dtype=torch.float64)
+        if torch.any(masked_var.isnan()):
+            masked_var  = torch.ones_like(masked_var)
+
         if torch.any(masked_mean.isnan()):
-            from IPython import embed
+            masked_mean = torch.zeros_like(masked_mean)
             embed(header=f"{pid} is nan check feature_array and sampler")
 
         # weight mean and add to collection
