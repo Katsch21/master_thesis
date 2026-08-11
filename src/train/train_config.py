@@ -36,7 +36,7 @@ class DataConfig:
         "hh_ggf_hbb_htt_kl1_kt1*",
         # "hh_ggf_hbb_htt_kl0_kt1*",
         )
-    eras: Tuple[ERAS_CHOICE] = ("22pre")
+    eras: Tuple[ERAS_CHOICE] = ("22pre", "22post", "23pre", "23post")
     datasets: Optional[List[str]] = None
     cuts: Optional[Any] = None
     dummy_values = -99999 # value used to fill in missing values
@@ -142,7 +142,7 @@ class TrainingConfig:
     train_ratio: float = 0.75 # split ratio for k-fold data into train and validation
     t_batch_size: int = 4096 * 10
     v_batch_size: int = -1 # validation batch size, -1 = full set,
-    save_model_name: str = "august_tt_111_g" # name of the model used to save
+    save_model_name: str = "august_tt_112_h" # name of the model used to save
 
     # Sampler Settings
     sample_ratio: Dict[str, float] = field(default_factory=lambda:{"dy": 1 / 3, "tt": 1 / 3, "hh": 1 / 3}) # decide the ratio of tt, dy and hh within a batch
@@ -151,7 +151,7 @@ class TrainingConfig:
         "signal":{}, # empty categorizes are set to 1 by default
         "tt_fh":{1300:1}, # groups are possible, and mixes are allowed
         "tt_sl": {1100:1},
-        "tt_dl" : {1200:1},
+        "tt_dl" : {1200:2},
         "dy":{51667: 1, 51683: 1, 51664: 1, 51680: 1, 51720: 1, 51723: 1, 51726: 1,
         51729: 1, 51732: 1, 51735: 1, 51674: 1, 51690: 1, 51665: 1, 51681: 1,
         51661: 1, 51677: 1, 51670: 1, 51671: 1, 51672: 1, 51673: 1, 51675: 1,
@@ -185,7 +185,7 @@ class TrainingConfig:
 
 @dataclass
 class SchedulerConfig:
-    scheduler_chain: Tuple[SCHEDULER_CHOICE, ...] = ("step", "step") # schedulers used in chain
+    scheduler_chain: Tuple[SCHEDULER_CHOICE, ...] = ("linear", "step") # schedulers used in chain
     config_chain: Optional[Tuple[Any, ...]] = None # list of configs corresponding to the schedulers in the scheduler chain
     scheduler_cls_chain: Optional[Tuple[Any, ...]] = None # list of scheduler classes corresponding to the schedulers in the scheduler chain, if None is given, it is assumed that the scheduler class can be derived from the scheduler choice by adding "LR" at the end, for example "CosineAnnealingLR" for "cosine"
     milestones: Tuple[int, ...] = (500,) # intervals after which the LR scheduler is swapped
