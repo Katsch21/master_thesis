@@ -509,8 +509,10 @@ class ProcessSampler(t_data.Sampler):
         # helper to enable ex. validation sampler to get sampling weight from training sampler
         for process_type, processes in self.process_inst.items():
             for uid, process_inst in processes.items():
-                v_process_inst = process_sampler.process_inst[process_type][uid]
-                v_process_inst.relative_weight = process_inst.relative_weight
+
+                v_process_inst = process_sampler.process_inst.get(process_type, {}).get(uid)
+                if v_process_inst is not None:
+                    v_process_inst.relative_weight = process_inst.relative_weight
 
 
 def create_sampler(
