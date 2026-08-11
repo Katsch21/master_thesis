@@ -58,11 +58,11 @@ def evaluate_model_on_fold(
         events = load_data.get_data(full_config.dataset_config, ignore_cache=False, _save_cache=False)
 
         if add_activation.lower() == "softmax":
-            last_fn = torch.nn.functional.softmax
+            last_fn = lambda x: torch.nn.functional.softmax(x, dim=1)
         elif add_activation.lower() == "sigmoid":
-            last_fn = torch.nn.functional.sigmoid
+            last_fn = lambda x: torch.nn.functional.sigmoid(x)
         else:
-            last_fn = torch.nn.Identity()
+            last_fn = lambda x: x
 
         for fold in folds:
             dnn_scores[fold] = {}
@@ -85,10 +85,11 @@ def evaluate_model_on_fold(
             for uid, uid_events in splitted_events.items():
                 continuous_inputs, categorical_inputs = uid_events["continuous"], uid_events["categorical"]
                 scores = model_inst(categorical_inputs=categorical_inputs, continuous_inputs=continuous_inputs)
-                scores = last_fn(scores, dim=1)
+                scores = last_fn(scores)
                 data = {
                     "scores": scores,
                     "event_weight": uid_events["product_of_weights"],
+                    "normalization_weights": uid_events["normalization_weights"],
                     "event_id": uid_events["event_id"]
                     }
                 dnn_scores[fold][_evaluate_on][uid] = data
