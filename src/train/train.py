@@ -76,7 +76,6 @@ def main(**kwargs):
             "sample_ratio" : full_config.training_config.sample_ratio,
             "sub_sample_ratio" : full_config.training_config.sub_process_ratios,
         }
-
         training_sampler = sampler.create_sampler(
             train_events,
             train=True,
