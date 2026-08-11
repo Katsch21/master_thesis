@@ -67,7 +67,7 @@ stack-data==0.6.3
 sympy==1.14.0
 tenacity==8.5.0
 threadpoolctl==3.6.0
-torch==2.8.0
+torch==2.5.3
 tornado==6.5.2
 tqdm==4.67.1
 traitlets==5.14.3
