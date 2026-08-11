@@ -42,7 +42,7 @@ def root_to_numpy(
     #   used for baseline cut -> tau2_isolated, lepton_os, channel_id
     #   event number used for k-fold splitting -> event
     #   oversampling weight that defines the fraction within batch -> normalization_weight
-    meta_fields = {"process_id", "tau2_isolated", "leptons_os", "channel_id", "event", "normalization_weight", "category_id"}
+    meta_fields = {"process_id", "tau2_isolated", "leptons_os", "channel_id", "event", "normalization_weight"}
 
     # training and evaluation phase space are not the same
     # a transfer weight can be calculated using the product of these weights
@@ -57,10 +57,12 @@ def root_to_numpy(
     # handling cuts
     # by default all analysis has a base cut applied
     # if further cuts are desired, cut is applied on top of baseline cut
+
     baseline_cuts = [
         "(tau2_isolated == 1)",
         "(leptons_os == 1)",
         "((channel_id == 1) | (channel_id == 2) | (channel_id == 3))",
+        "(reg_dnn_moe_vis_tau2_charge == 1) | (reg_dnn_moe_vis_tau2_charge == -1)"
     ]
 
     if isinstance(cut, str):
@@ -277,16 +279,17 @@ def handle_weights_and_convert_to_torch(events: np.array, continuous_features: l
         # total_di_tau_weight = torch.tensor(np.sum(arr["combined_weight"][arr["di_tau_mask"]]))
         # total_di_bjet_weight = torch.tensor(np.sum(arr["combined_weight"][arr["di_bjet_mask"]]))
         total_evaluation_weight = torch.tensor(np.sum(arr["combined_weight"][final_mask]))
-
         # some arrays have negative strides for some reason, which torch cannot handle -> cast to contiguous array first
-        normalization_weights = torch.tensor(np.ascontiguousarray(arr["normalization_weight"]), dtype=torch.float32)
+        normalization_weights = torch.from_numpy(np.array(arr["normalization_weight"], dtype=np.float32, copy=True))
+
         sum_of_normalization_weights = torch.sum(normalization_weights)
 
-        product_of_all_weights = torch.tensor(np.ascontiguousarray(arr["combined_weight"]), dtype=torch.float32)
+        product_of_all_weights = torch.tensor(np.array(arr["combined_weight"], dtype=np.float32, copy=True))
+
         sum_of_combined_weights = torch.sum(product_of_all_weights)
 
         # event id is a uint and is stored as uncontiguousarray for some reason after the casting
-        event_id = torch.tensor(np.ascontiguousarray(arr["event"]), dtype=torch.int64)
+        event_id = torch.tensor(np.array(arr["event"], dtype=np.int64, copy=True))
 
         events[uid] = {
             "continuous": continuous_tensor,
