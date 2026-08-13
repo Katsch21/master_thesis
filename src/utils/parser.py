@@ -33,7 +33,7 @@ class ParserBuilder():
         "-s",
         dest="save_cache",
         action="store_true",
-        default=False,
+        default=True,
         help="Save cache (default: False)"
         )
 
@@ -67,8 +67,8 @@ class ParserBuilder():
             "--add_activation",
             required=False,
             help="If value is given, get activation function and add at end of network",
-            default=None,
-            choices=["sigmoid", "softmax", None],
+            default="identity",
+            choices=["sigmoid", "softmax", "identity"],
         )
 
     def add_save_path(self):

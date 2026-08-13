@@ -142,7 +142,7 @@ class TrainingConfig:
     train_ratio: float = 0.75 # split ratio for k-fold data into train and validation
     t_batch_size: int = 4096 * 10
     v_batch_size: int = -1 # validation batch size, -1 = full set,
-    save_model_name: str = "august_tt_112_h" # name of the model used to save
+    save_model_name: str = "alleras_tt_111_a" # name of the model used to save
 
     # Sampler Settings
     sample_ratio: Dict[str, float] = field(default_factory=lambda:{"dy": 1 / 3, "tt": 1 / 3, "hh": 1 / 3}) # decide the ratio of tt, dy and hh within a batch
@@ -193,7 +193,7 @@ class SchedulerConfig:
 
     @dataclass
     class StepLRConfig(): # used by marcel
-        step_size: int = 4000 # number of iterations between two learning rate reductions
+        step_size: int = 400000 # number of iterations between two learning rate reductions
         gamma: float = 0.2 # learning rate reduction factor
         # min_delta: float = 0.0 # minimum improvement before increase patience - Marcel: 0
 
