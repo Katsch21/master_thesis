@@ -6,6 +6,7 @@ import awkward as ak
 import numpy as np
 import torch
 import uproot
+import numpy.lib.recfunctions as rfn
 
 from data.cache import DataCacher
 from data.utils import depthCount
@@ -62,7 +63,7 @@ def root_to_numpy(
         "(tau2_isolated == 1)",
         "(leptons_os == 1)",
         "((channel_id == 1) | (channel_id == 2) | (channel_id == 3))",
-        "(reg_dnn_moe_vis_tau2_charge == 1) | (reg_dnn_moe_vis_tau2_charge == -1)
+        "(reg_dnn_moe_vis_tau2_charge == 1) | (reg_dnn_moe_vis_tau2_charge == -1)"
     ]
 
     if isinstance(cut, str):
@@ -288,7 +289,7 @@ def handle_weights_and_convert_to_torch(events: np.array, continuous_features: l
         sum_of_combined_weights = torch.sum(product_of_all_weights)
         total_evaluation_weight = torch.sum(product_of_all_weights[final_mask])
 
-        event_id = struct_to_group_tensor(arr, ["event"], dtype=torch.int64)
+        event_id = struct_to_group_tensor(arr, ["event"], dtype=torch.int64).flatten()
 
         events[uid] = {
             "continuous": continuous_tensor,
@@ -351,3 +352,22 @@ def get_data(config , _save_cache = False, ignore_cache=False) -> dict[torch.Ten
                 from IPython import embed
                 embed(header=f"{e}\n Saving Cache did not work out - going debugging to manually save \'events\' with \'cacher.save_cache\'")
     return events
+
+def struct_to_group_tensor(arr: np.typing.NDArray, fields: tuple[str], dtype: torch.dtype=torch.float32):
+    """
+    Small helper convert struct *arr* *fields* into torch tensor of given *dtype*.
+
+    Args:
+        arr (np.typing.NDArray): structured array
+        fields (tuple[str]): fields one wants to extract
+        dtype (torch.dtype, optional): final dtype. Defaults to torch.float32.
+
+    Returns:
+        torch.Tensor: Tensor of extracted fields in given dtype
+    """
+    # get numpy equivalent dtype
+    np_dtype = torch.empty(0, dtype=dtype).numpy().dtype
+    dense = rfn.structured_to_unstructured(arr[fields], dtype=np_dtype)
+    # some arrays have negative strides for some reason, which torch cannot handle -> cast to contiguous array first
+    dense = np.ascontiguousarray(dense)
+    return torch.from_numpy(dense)

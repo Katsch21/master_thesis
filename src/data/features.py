@@ -70,7 +70,7 @@ def add_prefix(string, prefix, ignore_code="_"):
 def feature(feature):
     data_prefix = prefix_map()
     feature =  [add_prefix(f, f"{data_prefix}_", ignore_code="_") for f in feature]
-    return tuple(feature)
+    return list(feature)
 
 categorical_features = feature([
         "pair_type",

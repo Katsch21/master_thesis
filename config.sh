@@ -36,3 +36,5 @@ export ML_ENV="mltorch_2" # name of your virtualenv, so it can be activated by s
 export PATH="${PATH}:${DNN_DIR}/src" # add virtualenv to path
 # flags to stop unnecessary dir checks, can be undone to recreate dirs
 export SETUP_DIRS_DONE=1
+
+export PDB_HOOK_DIR=".setup"

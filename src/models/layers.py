@@ -279,7 +279,6 @@ class CategoricalTokenizer(torch.nn.Module):  # noqa: F811
     def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
         # shift input array by their respective minimum and slice translation accordingly
         # map to int to be used as indices
-        from IPython import embed; embed(header="MESSAGE Line 499 | File: layers.py")
 
         shifted = (x - self.min).to(torch.int32)
         output = self.map[self.indices, shifted]

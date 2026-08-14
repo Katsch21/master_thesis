@@ -1,0 +1,6 @@
+# gpu_interactive.submit
+# Requirements   = (OpSysAndVer == "CentOS7")
+Request_GPUs   = 1
+Request_Memory = 60GB
++RequestRuntime = 14400
+queue

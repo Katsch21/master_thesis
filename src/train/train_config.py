@@ -28,11 +28,13 @@ SCHEDULER_CHOICE = Literal["linear", "cosine_annealing", "reduce_on_plateau", "s
 class DataConfig:
     # changes in this config will create a NEW hash of the data
     target_map: Dict[str, int] = field(default_factory=lambda: {"hh": 0, "tt": 1, "dy": 2}) # node: index
-    continuous_features: List[str] = features.continuous_features
-    categorical_features: List[str] = features.categorical_features
+    continuous_features: List[str] = field(init=False)
+    categorical_features: List[str] = field(init=False)
     dataset_pattern: Tuple[str] = (
         "dy_*",
         "tt_*",
+        # "dy_m50toinf_2j_pt200to400_amcatnlo",
+        # "tt_fh_*",
         "hh_ggf_hbb_htt_kl1_kt1*",
         # "hh_ggf_hbb_htt_kl0_kt1*",
         )
@@ -42,6 +44,8 @@ class DataConfig:
     dummy_values = -99999 # value used to fill in missing values
 
     def __post_init__(self):
+        self.continuous_features = features.continuous_features
+        self.categorical_features = features.categorical_features
         # a dictionary of all files corresponding to a certain dataset
         self.datasets = find_datasets(self.dataset_pattern, self.eras, file_type="root", verbose=False)
     # TODO HASH ?
@@ -133,7 +137,7 @@ class TrainingConfig:
 
     max_train_iteration: int = 60000 # max number of batches
     verbose_interval: int = 5 # interval between two logger outputs of training loss
-    validation_interval: int = 100 # interval between two validation passes / plots are done during validation
+    validation_interval: int = 30 # interval between two validation passes / plots are done during validation
     gamma: float = 0.5
     label_smoothing: float = 0.0
     train_folds: Tuple[int, ...] = (0,) # which training folds to use
