@@ -124,6 +124,48 @@ class ParserBuilder():
         )
 
 
+    def add_batching(self):
+        def valid_batch_size(value):
+            value = int(value)
+            assert value >= 1, "batch size can't be negative or zero"
+            return value
+
+        self.parser.add_argument(
+            "--batch_size",
+            "-bs",
+            dest="batch_size",
+            type=valid_batch_size,
+            required=True,
+            help=(
+            """
+            Batch Size used for event loop.
+            """
+            )
+        )
+
+    def add_num_threading(self):
+        def valid_threads(value):
+            import torch
+            value = int(value)
+            assert value >= 0, "num of threads can't be negative"
+
+            if value > 0:
+                torch.set_num_threads(num_threads)
+            return None
+
+        self.parser.add_argument(
+            "--num_threads",
+            "-nt",
+            dest="num_threads",
+            default="0",
+            type=valid_threads,
+            required=False,
+            help=(
+            """
+            Number of threads for interops calculations. If threads is set 0 all existing threads are used.
+            """
+            )
+        )
 
     def build(self, args):
         commands = [f"add_{arg}" for arg in args]

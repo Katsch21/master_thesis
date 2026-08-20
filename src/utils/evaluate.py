@@ -8,31 +8,37 @@ import numpy as np
 import torch
 
 # personal imports
-from data import load_data, preprocessing
-from train.train_config import full_config
-from utils import logger
-from utils.load_models import rebuild_checkpoint_information
-from utils.parser import ParserBuilder
+from src.data.load_data import get_data
+import src.data.preprocessing as k_fold
+from src.utils.load_models import rebuild_checkpoint_information
+from src.utils import get_logger
+from src.utils.parser import ParserBuilder
+from tqdm import tqdm
 
-logger_inst = logger.get_logger(__name__)
+logger_inst = get_logger(__name__)
 
-CPU = torch.device("cpu")
-CUDA = torch.device("cuda")
-DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+def last_fn_picker(last_fn):
+    def sigmoid(x):
+        return torch.sigmoid(x)
 
-torch.manual_seed(full_config.training_config.seed)
-np.random.seed(full_config.training_config.seed)
+    def softmax(x):
+        return torch.softmax(x, dim=-1)
 
-logger_inst = logger.get_logger(__name__)
-logger_inst.info(f"DEVICE: {DEVICE}")
+    choices = {"sigmoid": sigmoid, "softmax": softmax, "identity": lambda x: x}
+    return choices[last_fn]
+
 
 def evaluate_model_on_fold(
+    events: dict[torch.Tensor],
     model_inst: torch.nn.Module,
     full_config: Literal["DataClass"],
     folds: Iterable[int],
-    evaluate_on: Iterable[str],
-    add_activation: str | None = None
-    ) -> torch.tensor:
+    evaluate_on: str,
+    last_activation_fn: Literal["sigmoid", "softmax", None] = None,
+    batch_size = 1,
+    num_threads = 1,
+
+) -> torch.tensor:
     """
     Function to evaluate *folds* with given *model_inst*.
     The configuration if handled by *full_config* and describes the network when it was trained.
@@ -51,23 +57,25 @@ def evaluate_model_on_fold(
         torch.Tensor: Tensor with output scores of the network.
     """
     with torch.no_grad():
+
+        model_inst.eval()
+
         dnn_scores = {}
 
         # --- load data and split by indices ---
-        logger_inst.info("Loading Data")
-        events = load_data.get_data(full_config.dataset_config, ignore_cache=False, _save_cache=False)
+        columns_to_split = (
+            "event_id",
+            "normalization_weights",
+            "product_of_weights",
+            "evaluation_mask",
+        )
 
-        if add_activation.lower() == "softmax":
-            last_fn = lambda x: torch.nn.functional.softmax(x, dim=1)
-        elif add_activation.lower() == "sigmoid":
-            last_fn = lambda x: torch.nn.functional.sigmoid(x)
-        else:
-            last_fn = lambda x: x
+        num_targets = len(full_config.dataset_config.target_map.values())
+        last_fn = last_fn_picker(last_activation_fn)
 
         for fold in folds:
-            dnn_scores[fold] = {}
-
-            fold_split_coordinator = preprocessing.FoldAndSplitCoordinator(
+            logger_inst.info(f"Fold: {fold}/{len(folds)}")
+            fold_split_coordinator = k_fold.FoldAndSplitCoordinator(
                 events=events,
                 c_fold=fold,
                 k_fold=full_config.training_config.k_fold,
@@ -75,50 +83,79 @@ def evaluate_model_on_fold(
                 training_percentage=full_config.training_config.train_ratio,
                 randomize=False,
             )
-        # --- run model on specific splits ---
-        for _evaluate_on in evaluate_on:
-            logger_inst.info(f"Evaluate {_evaluate_on} data of fold {fold}")
-            dnn_scores[fold][_evaluate_on] = {}
-            columns_to_split = ("continuous", "categorical", "event_id", "normalization_weights", "product_of_weights", "evaluation_mask")
-            splitted_events = fold_split_coordinator(events, which=_evaluate_on, columns=columns_to_split)
+            # --- run model on specific splits ---
+            dnn_scores[fold] = {}
+            logger_inst.info(f"Evaluate {evaluate_on} data of fold {fold}")
 
-            for uid, uid_events in splitted_events.items():
-                continuous_inputs, categorical_inputs = uid_events["continuous"], uid_events["categorical"]
-                scores = model_inst(categorical_inputs=categorical_inputs, continuous_inputs=continuous_inputs)
-                scores = last_fn(scores)
-                data = {
-                    "scores": scores,
-                    "event_weight": uid_events["product_of_weights"],
-                    "normalization_weights": uid_events["normalization_weights"],
-                    "event_id": uid_events["event_id"]
-                    }
-                dnn_scores[fold][_evaluate_on][uid] = data
+            for c_idx, uid in enumerate(events.keys(), 1):
+                logger_inst.info(f"Process {uid}, {c_idx}/{len(events.keys())}")
+                idx = fold_split_coordinator.indices[uid][evaluate_on]
 
+                # when no events left after split move on
+                total_n = len(idx)
+                if total_n == 0:
+                    continue
+
+                out_shape = (total_n, num_targets)
+                uid_scores = torch.empty(out_shape, dtype=torch.float32)
+
+                for start_idx in tqdm(range(0, total_n, batch_size)):
+                    # print(f"\r {start_idx}/{total_n} \x1b[K",end="", flush=True)
+
+                    end_idx = min(start_idx + batch_size, total_n)
+                    batch_idx = idx[start_idx: end_idx]
+
+                    continuous_inputs = events[uid]["continuous"][batch_idx]
+                    categorical_inputs = events[uid]["categorical"][batch_idx]
+
+                    scores = model_inst(categorical_inputs=categorical_inputs, continuous_inputs=continuous_inputs)
+
+                    # in multi-head networks the first output is always the normal prediction
+                    if model_inst.is_binned:
+                        scores = scores[0]
+
+                    scores = last_fn(scores)
+                    uid_scores[start_idx : end_idx] = scores.detach().cpu()
+
+                dnn_scores[fold][uid] = {
+                    "scores": uid_scores,
+                    "fold_index": idx,
+                }
+
+                # add splitted content on top
+                for column in columns_to_split:
+                    dnn_scores[fold][uid][column] = events[uid][column][idx]
+
+            del uid_scores
         return dnn_scores
 
 
-def evaluate_model_on_arbitrary_data(model_inst, input_data):
-    # input_data (dict[torch.Tensor]): Dictionary with different tensors, must match the keywords of the model_instance. This needs to be checked by yourself.
-    scores = model_inst(**input_data)
-    return scores
-
 if __name__ == "__main__":
-
     parser = ParserBuilder(
         "load_checkpoint",
         "activation_fn",
         "save_path",
         "evaluate_choices",
-        description="Evaluate Model in Checkpoint on test, training or validation set of the given input data"
-        )
+        "batching",
+        "num_threading",
+        description="Evaluate Model in Checkpoint on test, training or validation set of the given input data",
+    )
     args = parser.args
     model_inst, full_config = rebuild_checkpoint_information(args.path)
-    evaluated_data = evaluate_model_on_fold(
-        model_inst=model_inst,
-        full_config=full_config,
-        folds=args.fold,
-        evaluate_on=args.evaluate_on,
-        add_activation=args.add_activation,
-        )
+    events = get_data(full_config.dataset_config, ignore_cache=False, _save_cache=False)
 
-    torch.save(evaluated_data, args.file_path)
+    # evaluate data on each part separate and then flush scores
+    for evaluate_on in args.evaluate_on:
+        evaluated_data = evaluate_model_on_fold(
+            model_inst=model_inst,
+            full_config=full_config,
+            folds=args.fold,
+            evaluate_on=evaluate_on,
+            last_activation_fn=args.add_activation,
+            events=events,
+            num_threads=args.num_threads,
+            batch_size=args.batch_size,
+        )
+        path = args.file_path
+        p = path.with_stem(f"{path.stem}_{evaluate_on}").with_suffix(".pt")
+        torch.save(evaluated_data, p)
