@@ -150,7 +150,7 @@ class ParserBuilder():
             assert value >= 0, "num of threads can't be negative"
 
             if value > 0:
-                torch.set_num_threads(num_threads)
+                torch.set_num_threads(value)
             return None
 
         self.parser.add_argument(
