@@ -8,7 +8,7 @@ import torch
 from utils.logger import get_logger
 from dataclasses import asdict
 
-logger_inst = get_logger(__name__)
+logger_inst = get_logger("main")
 
 class EarlyStopSignal:
     """
