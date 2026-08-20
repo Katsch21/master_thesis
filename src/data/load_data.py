@@ -63,6 +63,7 @@ def root_to_numpy(
         "(tau2_isolated == 1)",
         "(leptons_os == 1)",
         "((channel_id == 1) | (channel_id == 2) | (channel_id == 3))",
+        # filter out 'bad' events: sometimes, a cf error leads to events with only one charged tau not being filtered out
         "(reg_dnn_moe_vis_tau2_charge == 1) | (reg_dnn_moe_vis_tau2_charge == -1)"
     ]
 
@@ -93,7 +94,7 @@ def root_to_numpy(
             weights_in_root_file = set(tree.keys()).intersection(weights)
             weights_arrays = tree.arrays(weights_in_root_file, library="ak", cut=final_cut)
 
-            combined_weight = 1
+            combined_weight = weights_arrays["normalization_weight"]
             for weight in weights_in_root_file:
                 combined_weight = combined_weight * weights_arrays[weight]
             all_branches_array["combined_weight"] = combined_weight
