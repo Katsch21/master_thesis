@@ -1,0 +1,41 @@
+Training with all 22  23 eras:
+
+(1) alleras_tt_111_a:
+    lr = 1e-3
+    Iteration: 1080 - TLoss: 2.58E-01 VLoss: 2.42E-01
+(2) alleras_tt_111_mediumlr:
+    lr = 1e-5
+    Iteration: 4530 - TLoss: 2.97E-01 VLoss: 2.84E-01
+
+(3) alleras_tt_111_smalllr:
+    lr = 1e-5
+    Iteration: 5520 - TLoss: 3.63E-01 VLoss: 3.48E-01
+    (aber immer noch weiter runter gegangen, nur langsam)
+(4) alleras_tt_112_largelr:
+    lr = 1e-3
+    Iteration: 1080 - TLoss: 2.58E-01 VLoss: 2.42E-01
+(5) alleras_tt_112_mediumlr:
+    lr = 1e-4
+    Iteration: 1020 - TLoss: 3.20E-01 VLoss: 3.05E-01
+(6) alleras_tt_112_smalllr:
+    lr = 1e-5
+
+
+
+22pre_ttt_tt_largelr:
+    lr = 1e-3
+    Iteration: 2250 - TLoss: 3.09E-01 VLoss: 2.95E-01
+22pre_tt_111_mediumlr:
+    lr = 1e-4
+    Iteration: 3990 - TLoss: 3.28E-01 VLoss: 3.14E-01
+22pre_tt_111_smalllr:
+    lr = 1e-5
+    Iteration: 6480 - TLoss: 3.50E-01 VLoss: 3.36E-01
+
+
+alleras_tt_111_steplr:
+    lr = 1e-3, gamma=0.5, stepsize=500
+    Iteration: 960 - TLoss: 2.58E-01 VLoss: 2.44E-01
+    Dann divergiert (ab nächstem Step)
+
+python -m src.utils.evaluate --src "alleras_tt_111_mediumlr_fold0.pt" --fold 0 -fp "alleras_tt_111_mediumlr.parquet" --add_activation identity -e "test" -bs 30000 -nt 20
