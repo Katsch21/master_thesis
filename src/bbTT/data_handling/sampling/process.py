@@ -178,6 +178,8 @@ class ProcessSampleCursor:
         """
         max_events = len(self.process)
         remaining = self.process.sample_size if number is None else number
+        if remaining < 0:
+            raise ValueError(f"Number of events to sample must be positive, got {remaining}.")
 
         # Accumulate index chunks across wraparounds.
         # A loop is used to cover multiple spans
@@ -190,7 +192,9 @@ class ProcessSampleCursor:
             self.current_idx += take
             remaining -= take
 
-        idx = chunks[0] if len(chunks) == 1 else torch.cat(chunks)
+        # number == 0 --> process sample_size == 0, or user requested 0 events. In that case, chunks is empty.
+        # In that case, return an empty tensor of the correct shape.
+        idx = torch.cat(chunks) if chunks else self.indices[:0]
 
         self.last_idx = idx
         return self.process.gather(idx=idx, sample_from=sample_from, device=device)
