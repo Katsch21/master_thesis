@@ -15,7 +15,7 @@ where = ["src"]
 [tool.vulture]
 # Ignore specific files
 exclude = [
-    "src/bbTT/utils/logger.py", # reason: most settings are unused
+    "src/bbTT/monitoring/logger/logger.py", # reason: most settings are unused
     "src/bbTT/utils/parser.py", # reason: uses a lot of building blocks that are loaded dynamically
     "src/bbTT/utils/utils.py"
 ]
