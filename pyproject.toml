@@ -1,31 +1,23 @@
 # Project definition
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=64.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "bbTT"
-version = "0.1.0"
+version = "0.2.0"
+requires-python = ">=3.9"
 
 [tool.setuptools.packages.find]
 # where to look for packages
 where = ["src"]
 
-# alternative way:
-# [tool.setuptools]
-# set src as top level package
-# packages = ["src"]
-# give
-# package-dir = {"src" = "src"}
-# ----------
-
 [tool.vulture]
 # Ignore specific files
 exclude = [
-    "src/utils/logger.py", # reason: most settings are unused
-    "src/utils/parser.py", # reason: uses a lot of building blocks that are loaded dynamically
-    "src/train/train_config.py", # reason: configuration file - some settings are only used indirectly
-    "src/utils/utils.py"
+    "src/bbTT/utils/logger.py", # reason: most settings are unused
+    "src/bbTT/utils/parser.py", # reason: uses a lot of building blocks that are loaded dynamically
+    "src/bbTT/utils/utils.py"
 ]
 
 # Ignore specific function, variable, or class names (supports wildcards like ? and *)
@@ -34,12 +26,6 @@ ignore_names = [
     "TODO *",
     "requires_grad",
     "clip_gradient",
-    "",
-    "",
-    "",
-    "",
-
-
 ]
 
 # Ignore specific decorators
@@ -49,8 +35,6 @@ ignore_decorators = [
     "@register_model*",
     "*.register_learning_mode",
     "@dataclass*"
-
-
 ]
 
 # linting
@@ -61,7 +45,7 @@ builtins = [
     ]
 
 line-length = 120
-target-version = "py311"
+target-version = "py39"
 
 [tool.ruff.lint]
 
