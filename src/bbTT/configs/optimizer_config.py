@@ -12,7 +12,7 @@ OPTIMIZER_CHOICE = Literal["adamw", "sam"]
 class ADAMWConfig:
     decay_factor: float = 500  # factor of L2 - Marcel: 500
     normalize: bool = True  # normalize weight decay factor to number of parameters
-    lr: float = 1e-2  # start learning rate
+    lr: float = 3e-3  # start learning rate
 
 
 @dataclass

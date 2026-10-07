@@ -179,6 +179,8 @@ def main(**kwargs):
         ### training loop
         # ----
         logger_inst.info("Start training loop")
+
+        # create deque to store last 10 validation losses as a criterion for chekpointing
         last_losses = deque([10, 10, 10, 10, 10, 10, 10, 10, 10, 10], maxlen=10)
         for current_iteration in range(full_config.training_config.max_train_iteration):
             batch_result = training_loop(

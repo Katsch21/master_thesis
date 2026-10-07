@@ -13,7 +13,7 @@ SAMPLING_STRATEGY = Literal["largest_remainder", "stochastic"]
 
 @dataclass
 class TrainingConfig:
-    save_model_name: str = "cross_entropy_benchmark"  # name of the model used to save
+    save_model_name: str = "baseline_baseline"  # name of the model used to save
     model_choice: MODEL_CHOICE = "lbn_dense"
     training_fn: TRAINING_LOOP_CHOICE = "cross_entropy"  # name of the training loop
     validation_fn: VALIDATION_LOOP_CHOICE = "cross_entropy"  # name of the validation loop
