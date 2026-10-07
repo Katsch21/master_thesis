@@ -11,7 +11,7 @@ WARMUP_CHOICE = Literal["linear", "cosine"] # warm-up curves, implemented in bbT
 
 @dataclass
 class StepLRConfig:  # used by marcel
-    step_size: int = 500  # number of iterations between two learning rate reductions
+    step_size: int = 8000  # number of iterations between two learning rate reductions
     gamma: float = 0.5  # learning rate reduction factor
 
 
