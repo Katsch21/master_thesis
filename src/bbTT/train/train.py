@@ -36,6 +36,8 @@ from bbTT.optimizer.utils import init_optimizer, init_scheduler
 from bbTT.train.loops import TrainingLoop, ValidationLoop
 from bbTT.utils.utils import DEVICE
 
+from collections import deque
+
 full_config = FullConfig()
 torch.manual_seed(full_config.training_config.seed)
 np.random.seed(full_config.training_config.seed)
