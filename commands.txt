@@ -1,0 +1,2 @@
+python -m src.train.train -tn "name"
+python -m src.utils.evaluate --src "name_fold0.pt" --fold 0 -fp "name.parquet" --add_activation identity -e "test" -bs 30000 -nt 20
