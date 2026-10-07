@@ -177,6 +177,7 @@ def main(**kwargs):
         ### training loop
         # ----
         logger_inst.info("Start training loop")
+        last_losses = deque([10, 10, 10, 10, 10, 10, 10, 10, 10, 10], maxlen=10)
         for current_iteration in range(full_config.training_config.max_train_iteration):
             batch_result = training_loop(
                 model_inst=model_inst,
@@ -355,8 +356,12 @@ def main(**kwargs):
                             "Loss/Validation VLoss": "loss",
                         },
                     )
+
+                last_losses.append(eval_v_loss.cpu().item())
+                mean_last_losses = np.mean(last_losses)
+
                 ### checkpoint criteria checks and saving
-                if checkpoint_inst.check_criteria(eval_v_loss):
+                if checkpoint_inst.check_criteria(mean_last_losses):
                     checkpoint_inst.create_checkpoint(
                         model=model_inst,
                         optimizer=optimizer_inst,
