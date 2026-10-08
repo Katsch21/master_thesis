@@ -361,7 +361,7 @@ def main(**kwargs):
                         },
                     )
 
-                last_losses.append(eval_v_loss.cpu().item())
+                last_losses.append(eval_v_loss)
                 mean_last_losses = np.mean(last_losses)
 
                 ### checkpoint criteria checks and saving
