@@ -1,6 +1,6 @@
 # storage directories, all directories are created for your
-export USER=wiedersb
-export DNN_ROOT=/afs/desy.de/user/w/wiedersb/xxl/pytorch_network_playground # location of your DNN dir
+export USER=hergesk
+export DNN_ROOT=/afs/desy.de/user/h/hergesk/repos/pytorch_network_playground # location of your DNN dir
 export STORE_DIR=/data/dust/user/${USER}/HH_DNN # ROOT of storage
 export CACHE_DIR=${STORE_DIR}/cache # directory where preprocessed data is stored as well as dataset paths
 export PICTURE_DIR=${STORE_DIR}/pictures
@@ -28,9 +28,9 @@ export CF_USER_FLAVOR="dev" # your cf user name - used when source setup with fo
 export CF_SANDBOX="venv_hbt_dev" #  sandbox name within columnflow
 
 # pyenv or virtualenv settings
-export VENV_ROOT="/data/dust/user/${USER}/pyenv_virtualenvs" # place to look for existing virtualenvs
+export VENV_ROOT="/data/dust/user/${USER}/venvs" # place to look for existing virtualenvs
 export PYENV_ROOT="/afs/desy.de/user/w/${USER}/.pyenv" # root of pyenv installation
-export ML_ENV="ml_torch" # name of your virtualenv, so it can be activated by source setup.sh
+export ML_ENV="mltorch" # name of your virtualenv, so it can be activated by source setup.sh
 export VENV_PYTHON="python3.9" # used python in venv
 
 export PDB_HOOK_DIR=".setup"
