@@ -250,7 +250,7 @@ class DataConfig:
         This is relevant for caching algorithms, as changes in this config will create a new hash of the data.
         """
         return {
-            "target_map": self.target_map,
+            # "target_map": self.target_map,
             "continuous_features": self.continuous_features,
             "categorical_features": self.categorical_features,
             "expected_embedding_inputs": self.expected_embedding_inputs,
