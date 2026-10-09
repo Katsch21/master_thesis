@@ -3,14 +3,16 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import Literal, Optional
+
+from torch import Generator
 
 from bbTT.configs.utils import choice_check
 
 SAMPLING_STRATEGY = Literal["old_largest_remainder", "largest_remainder", "stochastic"]
 
-if TYPE_CHECKING:
-    from torch import Generator
+
+
 
 
 @dataclass

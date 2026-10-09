@@ -8,7 +8,8 @@ import numpy as np
 import torch
 
 # personal imports
-from bbTT.data_handling import io, k_fold
+from bbTT.data_handling import io
+from bbTT.data_handling.preprocessing import k_fold
 from bbTT.evaluation.load_models import rebuild_checkpoint_information
 from bbTT.monitoring.logger.logger import get_logger
 from bbTT.utils.parser import ParserBuilder
