@@ -32,7 +32,10 @@ class FullConfig:
     sampler_config: SamplerConfig = field(default_factory=SamplerConfig)
 
     def _compatibility_rules(self) -> list[tuple[Callable[[], bool], str]]:
-        """Each rule: (is_violated, message). is_violated() returning True raises."""
+        """
+        Each rule: (is_violated, message). is_violated() returning True raises.
+        Thus all rules describe the FORBIDDEN  state!
+        """
         return [
             (
                 lambda: self.optimizer_config.optimizer_choice == "sam" and self.training_config.training_fn != "sam",
@@ -61,19 +64,23 @@ class FullConfig:
             (
                 lambda: (
                     (self.loss_config.loss_fn == "cross_entropy")
-                    and (self.model_building_config.use_last_activation is False)
+                    and (self.model_building_config.use_last_activation is True)
                 ),
-                "Cross Entropy Loss expect Logits and has build in SoftMax:"
+                "Cross Entropy Loss expect Logits (has build in SoftMax)."
+                "Set ModelConfig.use_last_activation=False to avoid SoftMax output.",
             ),
             (
                 lambda: (
                     (self.loss_config.loss_fn == "signal_efficiency")
-                    and (self.model_building_config.use_last_activation is True)
-                    and (self.model_building_config.last_activation_fn.lower() != "softmax")
+                    and (
+                        not self.model_building_config.use_last_activation
+                        or self.model_building_config.last_activation_fn != "Softmax"
+                    ),
+                "Signal Efficiency expects Softmax output (use_last_activation=True, last_activation_fn='Softmax'). "
+                f"Currently: use_last_activation={self.model_building_config.use_last_activation}, "
+                f"last_activation_fn={self.model_building_config.last_activation_fn!r}",
                 ),
-                "Signal Efficiency expect SoftMax output."
-                f"Currently using '{self.model_building_config.last_activation_fn.lower()}' as last activation function.",
-            ),
+            )
 
             # add more rules here, e.g.:
             # (
