@@ -55,7 +55,9 @@ def find_datasets(dataset_patterns: list[str], year_patterns: list[str], *, file
     for year in years:
         data[year] = {}
         for dataset_patter in dataset_patterns:
-            datasets = list(data_dir.glob(f"{year}/{dataset_patter}"))
+            # sort: glob order depends on the filesystem, which makes dataset order
+            # (and thus event order downstream) machine-dependent
+            datasets = sorted(data_dir.glob(f"{year}/{dataset_patter}"))
 
             if len(datasets) == 0:
                 raise ValueError(f"dataset pattern {dataset_patter} for {year} resulted in 0 datasets")
