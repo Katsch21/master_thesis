@@ -47,7 +47,7 @@ def evaluate_model_on_fold(
 
     Args:
         model_inst (torch.nn.Module): Loaded model instance, that is used to evaluate the data.
-        full_config (Literal[&quot;DataClass&quot;]): Dataclass containing all configs defined in train_config.py -> is also located in checkpoint of the network.
+        full_config (Literal[&quot;DataClass&quot;]): Dataclass containing all other configs, is also located in the checkpoint and describes the network when it was trained.
         folds (Iterable[int]): Iterable of folds to evaluate on. Careful: Network should match the fold it was trained on, no check is performed.
         evaluate_on (Iterable[str]): Iterable containing: "test", "training" or "validation", defines which indices are used of the input data used for training.
 
