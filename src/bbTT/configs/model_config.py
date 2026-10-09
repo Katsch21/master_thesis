@@ -69,7 +69,7 @@ class ModelConfig:
     enable_binning: bool = True  # turn off binning layer, for example when using a model that does not support binning
 
     last_activation_fn: LAST_ACTIVATION_CHOICE = "Softmax"  # add activation function after last layer
-    use_last_activation: bool = True  # noqa use last activation, Losses can have buildin activation function like cross entropy. Marcel: False
+    use_last_activation: bool = False  # noqa use last activation, Losses can have buildin activation function like cross entropy. Marcel: False
 
     rotation: RotationLayerConfig = field(default_factory=RotationLayerConfig)
 

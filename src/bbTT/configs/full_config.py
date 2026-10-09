@@ -51,13 +51,30 @@ class FullConfig:
             (
                 lambda: (
                     self.loss_config.loss_fn == "signal_efficiency"
-                    and self.training_config.training_fn != "signal_efficiency"
-                    and self.training_config.validation_fn != "signal_efficiency"
+                    and ((self.training_config.training_fn != "signal_efficiency")
+                        or (self.training_config.validation_fn != "signal_efficiency"))
                 ),
-                f"Cross Entropy Loss expects the correct choices of Loop, current choice is:"
+                f"Signal Efficiency Loss expects the correct choices of Loop, current choice is:"
                 f"training -> {self.training_config.training_fn}"
                 f"validation -> {self.training_config.validation_fn}",
             ),
+            (
+                lambda: (
+                    (self.loss_config.loss_fn == "cross_entropy")
+                    and (self.model_building_config.use_last_activation is False)
+                ),
+                "Cross Entropy Loss expect Logits and has build in SoftMax:"
+            ),
+            (
+                lambda: (
+                    (self.loss_config.loss_fn == "signal_efficiency")
+                    and (self.model_building_config.use_last_activation is True)
+                    and (self.model_building_config.last_activation_fn.lower() != "softmax")
+                ),
+                "Signal Efficiency expect SoftMax output."
+                f"Currently using '{self.model_building_config.last_activation_fn.lower()}' as last activation function.",
+            ),
+
             # add more rules here, e.g.:
             # (
             #     lambda: self.binning_config.enable_binning and not self.model_building_config.enable_binning,
