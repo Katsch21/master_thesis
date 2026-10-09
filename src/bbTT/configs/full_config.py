@@ -73,14 +73,15 @@ class FullConfig:
                 lambda: (
                     (self.loss_config.loss_fn == "signal_efficiency")
                     and (
-                        not self.model_building_config.use_last_activation
+                        self.model_building_config.use_last_activation is False
                         or self.model_building_config.last_activation_fn != "Softmax"
-                    ),
+                    )
+                ),
                 "Signal Efficiency expects Softmax output (use_last_activation=True, last_activation_fn='Softmax'). "
                 f"Currently: use_last_activation={self.model_building_config.use_last_activation}, "
                 f"last_activation_fn={self.model_building_config.last_activation_fn!r}",
-                ),
-            )
+            ),
+
 
             # add more rules here, e.g.:
             # (
