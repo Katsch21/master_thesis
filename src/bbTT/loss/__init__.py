@@ -1,7 +1,6 @@
 from bbTT.utils.lazy_loader import lazy_import
 
 from . import binning
-from .BinningAwareSignalEfficiency import BinningAwareSignificance
 from .CrossEntropy import WeightedCrossEntropy
 from .FocalLoss import FocalLoss
 from .SignalEfficiency import SignalEfficiency
@@ -11,7 +10,6 @@ from .YieldCalculator import YieldCalculator
 __all__ = [
     "binning",
     "SignalEfficiency",
-    "BinningAwareSignificance",
     "WeightedCrossEntropy",
     "FocalLoss",
     "init_loss",

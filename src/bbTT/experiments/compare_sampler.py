@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import bbTT.data_handling.sampler as sampler_old
+
 # standard imports
 # package imports
 import numpy as np
 import torch
 
-import bbTT.data_handling.sampler as sampler_old
 import bbTT.data_handling.sampling.sampler as sampler
 from bbTT.configs.full_config import FullConfig
 

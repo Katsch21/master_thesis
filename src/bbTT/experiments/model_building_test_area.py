@@ -5,15 +5,16 @@ import torch
 # package imports
 import bbTT.models.architectures as arc
 
+#from models.architectures import *
+from bbTT.configs.full_config import FullConfig
+
 #from models import create_model
 from bbTT.data_handling import io, preprocessing
 from bbTT.monitoring.logger.logger import get_logger
 
-#from models.architectures import *
-from bbTT.train.train_config import full_config
-
 
 def main(**kwargs):
+    full_config = FullConfig(**kwargs)
     model_inst = arc.BinnedLBNDenseNet(full_config)
     logger_inst = get_logger(__name__)
 

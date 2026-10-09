@@ -13,6 +13,7 @@ class WeightedCrossEntropy(torch.nn.CrossEntropyLoss):
         reduction = self.reduction
         if event_weights is not None:
             self.reduction = "none"
+            # torch.nn.CrossEntropyLoss ALREADY has Softmax built in, so no need to apply it here
             loss = super().forward(prediction, target)
             self.reduction = reduction
 
