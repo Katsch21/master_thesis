@@ -171,6 +171,8 @@ class FoldAndSplitCoordinator:
         return splitted_events
 
     def invalid_kinds(self, kinds):
+        if isinstance(kinds, str):
+            kinds = [kinds]
         invalid_kinds = set(kinds) - {"training", "validation", "test"}
         if invalid_kinds:
             raise ValueError(
