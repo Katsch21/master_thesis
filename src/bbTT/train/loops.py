@@ -418,6 +418,8 @@ class ValidationLoop(BaseLoop):
         sample_columns,
         device,
         monitor=None,
+        *args,
+        **kwargs,
     ):
         loss_columns = {"product_of_weights", "evaluation_space_mask"}
         to_sample_columns = self.necessary_columns.union(loss_columns).union(sample_columns)

@@ -1,6 +1,5 @@
-import torch
 
-from bbTT.loss import BinningAwareSignificance, SignalEfficiency, WeightedCrossEntropy
+from bbTT.loss import SignalEfficiency, WeightedCrossEntropy
 from bbTT.utils.utils import CPU_DEVICE
 
 
@@ -25,22 +24,4 @@ def init_loss(full_config, device=CPU_DEVICE, **kwargs):
 
         train_loss_fn = SignalEfficiency(train=True, **loss_cfg)
         validation_loss_fn = SignalEfficiency(train=False, **loss_cfg)
-
-    elif cfg.loss_fn == "signal_efficiency_binning_aware":
-        # TODO check if works
-        loss_cfg = {
-            "bins": torch.linspace(
-                full_config.binning_config.lower_edge,
-                full_config.binning_config.upper_edge,
-                full_config.binning_config.num_bins + 1,
-            ),
-            "sampler_inst": kwargs["training_sampler"],
-            "device": device,
-            "asimov_cfg": cfg.active_config,
-            "binning_cfg": full_config.binning_config.kernel_config[full_config.binning_config.kernel_cls],
-        }
-
-        train_loss_fn = BinningAwareSignificance(device=device, train=True, **loss_cfg)
-        validation_loss_fn = BinningAwareSignificance(device=device, train=False, **loss_cfg)
-
     return train_loss_fn, validation_loss_fn

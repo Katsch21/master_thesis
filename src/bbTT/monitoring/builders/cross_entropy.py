@@ -8,7 +8,7 @@ def build_cross_entropy(ctx, **kwargs):
     # TODO multi signal not implemented yet!
     # prediction is used to determine in which bin a truth value would land
     # ex. bins are [0,0.3,1] and prediction said 0, while truth is hh -> first bin signal count goes up by 1.
-    # HINT: DOES REQUIRE SOFTMAX input
+    # HINT: DOES REQUIRE LOGIT input
     y_true = ctx.targets
     y_pred = ctx.predictions
     weights = ctx.event_weights
