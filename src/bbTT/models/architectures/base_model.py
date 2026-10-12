@@ -105,11 +105,11 @@ class BaseModel(HookableModelMixin, torch.nn.Module):
 
     def learning_mode_freeze_all(self):
         for _, layer in self.named_children():
-            layer.requires_grad = False
+            layer.requires_grad_(False)
 
     def learning_mode_unfreeze_all(self):
         for _, layer in self.named_children():
-            layer.requires_grad = True
+            layer.requires_grad_(True)
 
     def evaluation_state(self) -> dict[str:Any]:
         """
