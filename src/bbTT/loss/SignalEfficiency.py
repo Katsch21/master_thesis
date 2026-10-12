@@ -16,7 +16,7 @@ class SignalEfficiency(HookableMixin, torch.nn.Module):
         self,
         sampler_inst,
         device,
-        is_training=True,
+        is_training,
         asimov_cfg=None,
         *args,
         **kwargs,
