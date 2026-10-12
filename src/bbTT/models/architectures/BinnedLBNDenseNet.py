@@ -68,10 +68,12 @@ class BinnedLBNDenseNet(LBNDenseNet):
         return self.binning_layer.kernels
 
     def freeze_edges(self):
-        self.binning_layer.freeze_edges()
+        if self.enabled_binning:
+            self.binning_layer.freeze_edges()
 
     def unfreeze_edges(self):
-        self.binning_layer.unfreeze_edges()
+        if self.enable_binning:
+            self.binning_layer.unfreeze_edges()
 
     @property
     def binning_fn(self):
