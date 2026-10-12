@@ -1,5 +1,7 @@
 import torch
 
+from bbTT.monitoring.metrics.transformations.decoding import map_prediction_to_binary
+
 # ------------------
 # Binary classification
 # ------------------
@@ -68,7 +70,7 @@ def matthews_correlation_coefficient_binary(tp, tn, fp, fn):
 # ------------------
 
 
-def multiclass_rates(targets, predictions, weights=None, dtype=torch.int32):
+def multiclass_rates(targets, predictions, weights=None, dtype:torch.dtype=torch.float32):
     """
     Calculate tp, tn, fp, fn for a 'Multi Label Classifier' by utilizing the *targets and *predictions* tensors.
     If a *weights* of events is given, this is applied to the rates calculation.
@@ -82,6 +84,7 @@ def multiclass_rates(targets, predictions, weights=None, dtype=torch.int32):
         targets (torch.tensor): truth tensor of shape (num_events, num_classes) in one-hot encoded form
         pred (torch.tensor): prediction tensor of shape (num_events, num_classes) with class scores/probabilities
         weights (torch.tensor, optional): Event based weights. Defaults to None.
+        dtype (torch.dtype, optional): Dtype of the returned tensor HINT: For weighted counts int32 will truncate the value. Defaults to torch.float32.
 
     Returns:
         torch.tensor: tensor of shape (num_classes, 4) with tp, tn, fp, fn per class
@@ -111,7 +114,7 @@ def _F1_macro_score(precision, recall, weights=None):
     if weights is None:
         return torch.mean(f1, dim=0)
     f1 = weights * f1
-    return torch.sum(2 * (precision * recall) / (precision + recall), dim=0)
+    return torch.sum(f1, dim=0)
 
 
 def F1_macro_score(prediction, target, weights=None):
@@ -147,7 +150,7 @@ def calculate_metrics(target, pred, label=None, weights=None, normalize=False):
             fp,
         )
         _sensitivity = sensitivity(tp, fn)
-        _f1_score = F1_macro_score(_precision, _sensitivity)
+        _f1_score = _F1_macro_score(_precision, _sensitivity)
         if label is not None:
             c = label[c]
         metrics[c] = {

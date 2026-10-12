@@ -192,7 +192,6 @@ class FeatureStatisticCache(BaseCacher):
             masked_mean = torch.masked.mean(input=array, mask=include_mask, dim=0, dtype=torch.float64)
             if torch.any(masked_mean.isnan()):
                 from IPython import embed
-
                 embed(header=f"{uid} is nan check feature_array and sampler")
 
             # a feature with 1 event will return a NaN for its variance.

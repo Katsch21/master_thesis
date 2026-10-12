@@ -68,7 +68,6 @@ def _cache_era(cache: DataCacher, era, era_events, save_cache: bool) -> None:
     except Exception as e:
         logger_inst.exception(f"Saving cache for era {era} failed")
         from IPython import embed
-
         embed(
             header=f"{e}\nSaving Cache did not work out - going debugging to manually save 'events' with 'cacher.save_era'"
         )

@@ -18,8 +18,8 @@ class EventWeightedLossFunction(torch.nn.Module):
         loss = self.loss_inst(*args, **kwargs, reduction="none")
         if torch.isnan(loss):
             from IPython import embed
-
             embed(header="Loss value IsNan")
+
         if event_weights := kwargs.get("event_weights") is not None:
             loss = torch.flatten(loss)
             event_weights = torch.flatten(event_weights)
