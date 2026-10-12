@@ -64,12 +64,12 @@ def asimov(s: torch.Tensor, b: torch.Tensor, unc_b: torch.Tensor, *args, **kwarg
     """
 
     ln_nominator_1 = (s + b) * (b + unc_b**2)
-    ln_denominator_1 = b**2 + (s + b)
+    ln_denominator_1 = b**2 + (s + b) * unc_b**2
     part_1 = (s + b) * torch.log(ln_nominator_1 / ln_denominator_1)
 
-    ln_nominator_2 = 1 + (unc_b**2 * s)
+    ln_nominator_2 = (unc_b**2 * s)
     ln_denominator_2 = b * (b + unc_b**2)
-    part_2 = b**2 / unc_b**2 * torch.log(ln_nominator_2 / ln_denominator_2)
+    part_2 = (b**2 / unc_b**2) * torch.log(1 + ln_nominator_2 / ln_denominator_2)
 
     _asimov = torch.sqrt(2 * (part_1 - part_2))
     return _asimov
