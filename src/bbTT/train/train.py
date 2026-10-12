@@ -82,9 +82,10 @@ def main(**kwargs):
             c_fold=current_fold,
             k_fold=full_config.training_config.k_fold,
             seed=full_config.training_config.seed,
-            training_percentage=0.75,
-            randomize=True,
+            training_percentage=full_config.training_config.train_ratio,
+            randomize=full_config.training_config.randomize,
         )
+
 
         columns_to_split = (
             "continuous",
