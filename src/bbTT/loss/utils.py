@@ -22,6 +22,6 @@ def init_loss(full_config, device=CPU_DEVICE, **kwargs):
             "asimov_cfg": cfg.active_config,
         }
 
-        train_loss_fn = SignalEfficiency(train=True, **loss_cfg)
-        validation_loss_fn = SignalEfficiency(train=False, **loss_cfg)
+        train_loss_fn = SignalEfficiency(is_training=True, **loss_cfg)
+        validation_loss_fn = SignalEfficiency(is_training=False, **loss_cfg)
     return train_loss_fn, validation_loss_fn
