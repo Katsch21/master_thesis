@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import torch
 
@@ -18,20 +19,26 @@ if TYPE_CHECKING:
 
 class FeatureStatisticCache(BaseCacher):
     def __init__(
-        self, dataset_config: DataConfig, sampler: ProcessSampler, return_dummy: bool = False, verbose: bool = True
+        self,
+        dataset_config: DataConfig,
+        sampler: ProcessSampler,
+        split_fingerprint: dict[str, Any],
+        return_dummy: bool = False,
+        verbose: bool = True
     ):
         """
         Provides the per-feature normalization statistics, cached on disk.
 
         On construction the statistics are either loaded from the cache file belonging
-        to the config hash, or computed from the sampler and written there. The cache
-        path is ``$CACHE_DIR/<content_hash>/training_statistics.json``, so a change of
-        the dataset definition automatically maps to a different file instead of
-        silently reusing stale values.
+        to the config hash and fingerprint, or computed from the sampler and written there.
+        The cache path is ``$CACHE_DIR/<content_hash>/training_statistics_<fingerprint_has>.json``.
+        The fingerprint covers everything that changes the numbers but is not part the dataset definitions (era, split, etc.).
+        This ensures that stale statistics are not silently reused when the dataset is changed, and that different splits of the same dataset do not
 
         Args:
             dataset_config (DataConfig): Config providing ``content_hash()``, ``continuous_features`` and ``dummy_values``.
             sampler (ProcessSampler): Sampler holding the registered processes.
+
             return_dummy (bool): Skip the computation and use an identity transform (mean 0, std 1). Useful when pretrained weights are loaded anyway.
             verbose (bool): Log the resulting per-feature statistics.
 
@@ -40,13 +47,14 @@ class FeatureStatisticCache(BaseCacher):
         """
         super().__init__(config=dataset_config)
         self.sampler = sampler
-
-        self.path = self.cache_root / self.hash / "training_statistics.json"
-
+        self.split_fingerprint = split_fingerprint
         self.return_dummy = return_dummy
 
         self.features = self.config.continuous_features
         self.padding_dummy = self.config.dummy_values
+
+        self.fingerprint = self.build_fingerprint(split_fingerprint)
+        self.path = self.cache_root / self.hash / f"training_statistics_{self.fingerprint_hash()}.json"
 
         self.mean, self.std = None, None
         if not self.path.exists():
@@ -84,12 +92,54 @@ class FeatureStatisticCache(BaseCacher):
             "std": self.std.numpy().tolist(),
             "padding": self.padding_dummy,
             "features": self.features,
+            "fingerprint": self.fingerprint,
         }
 
         tmp_path = self.path.with_suffix(".json.tmp")
         tmp_path.write_text(json.dumps(content, indent=2))
         tmp_path.replace(self.path)
         logger_inst.info(f"Saved normalization statistics to {self.path}")
+
+    def build_fingerprint(self, split_fingerprint: dict[str, Any]) -> dict[str, Any]:
+        """
+        Collects everything that determines the numbers of the statistics.
+
+        The relative weights are stored as result instead of listing their inputs (batch size,
+        sample ratios, luminosity, ...), so any upstream change that shifts a weight is
+        detected automatically.
+
+        Args:
+            split_fingerprint (dict[str, Any]): Split parameters, see ``FoldAndSplitCoordinator.fingerprint``.
+
+        Returns:
+            dict[str, Any]: JSON-serializable fingerprint.
+        """
+        processes = self.sampler.registry.all()  # get all registered processes, dict[uid, Process]
+        return {
+            "eras": list(self.config.eras),
+            "features": list(self.features),
+            "padding": self.padding_dummy,
+            "return_dummy": self.return_dummy,
+            "split": split_fingerprint,
+            # rounded to 8 so that the last float bits must not decide between cache hit and miss
+            "relative_weights": {
+                "/".join(map(str, uid)): float(f"{proc.relative_weight:.8g}") for uid, proc in processes.items()
+            },
+        }
+
+    def fingerprint_hash(self) -> str:
+        """
+        Short stable hash of the fingerprint, used in the file name.
+
+        Uses sha256 (like ``DataConfig.content_hash``) and not the builtin ``hash``, which is
+        randomized per process for strings. ``sort_keys`` makes the result independent of the
+        dict order. Only the first 10 hex characters (40 bit) are kept (approx collision between 2 files 1e-11).
+
+        Returns:
+            str: 10 hex characters.
+        """
+        payload = json.dumps(self.fingerprint, sort_keys=True)
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:10]
 
     def get_statistics(self) -> tuple[torch.Tensor, torch.Tensor]:
         """

@@ -128,6 +128,7 @@ def main(**kwargs):
         feature_statistic_cache = FeatureStatisticCache(
             dataset_config=full_config.dataset_config,
             sampler=training_sampler,
+            split_fingerprint=fold_split_coordinator.fingerprint(),
             return_dummy=full_config.debug_config.get_batch_statistic_return_dummy,
             verbose=True,
         )

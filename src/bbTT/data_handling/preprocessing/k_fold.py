@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 
 from bbTT.monitoring.logger.logger import get_logger
@@ -50,6 +52,22 @@ class FoldAndSplitCoordinator:
         self.randomize = randomize
 
         self.indices = self.split_index_to_sets(events=events)
+
+    def fingerprint(self) -> dict[str, Any]:
+        """
+        Unique information that describes WHICH events end up in the training set.
+        Equal fingerprints => same training events and ordering.
+
+        Returns:
+            dict[str, Any]: JSON-serializable split parameters.
+        """
+        return {
+            "current_fold": self.current_fold,
+            "k_fold": self.k_fold,
+            "seed": self.seed,
+            "training_percentage": self.percentage_training,
+            "randomize": self.randomize,
+        }
 
     def split_index_to_sets(self, events):
         # TODO Docstring
