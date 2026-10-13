@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal, Optional, Tuple
+from typing import Any, Optional, Tuple
 
-from bbTT.configs.utils import choice_check
 from bbTT.utils.utils import EMPTY_FLOAT
-
-LAST_ACTIVATION_CHOICE = Literal["Softmax", "Sigmoid", None]
 
 
 @dataclass
@@ -68,8 +65,7 @@ class ModelConfig:
     enable_rotation: bool = False  # turn off rotation, currently data is rotated in preprocessing by Marcel
     enable_binning: bool = True  # turn off binning layer, for example when using a model that does not support binning
 
-    last_activation_fn: LAST_ACTIVATION_CHOICE = "Softmax"  # add activation function after last layer
-    use_last_activation: bool = False  # noqa use last activation, Losses can have buildin activation function like cross entropy. Marcel: False
+    use_last_activation: bool = True  # noqa use last activation defined inside model. If false logits are returned Marcel: False
 
     rotation: RotationLayerConfig = field(default_factory=RotationLayerConfig)
 
@@ -83,9 +79,6 @@ class ModelConfig:
     lbn_network: LorentzBoostNetworkConfig = field(default_factory=LorentzBoostNetworkConfig)
 
     def __post_init__(self):
-
-        choice_check(self.last_activation_fn, LAST_ACTIVATION_CHOICE)
-
         # currently parametrization and l2 maybe buggy
         if self.dense_network.normalize_linear is True:
             raise ValueError("Norm of Linear Layer is currently buggy and is therefore disabled for now")

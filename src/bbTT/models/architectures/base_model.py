@@ -201,21 +201,19 @@ class BaseModel(HookableModelMixin, torch.nn.Module):
 
         return continuous_padding, categorical_padding
 
-    def init_last_activation_layer(self) -> torch.nn.Module | None:
+    def init_last_activation_layer(self) -> torch.nn.Module:
         """
         Helper to init the very last activation function.
 
+        The activation is defined by the number of targets and not configurable:
+        a single target is a binary problem (Sigmoid), several targets are a multiclass problem (Softmax).
+
         Returns:
-            torch.nn.Module | None: Either an instance of the last activation layer or None.
+        torch.nn.Module: Instance of the last activation layer.
         """
-        # pick activation layer from torch by string,
-        if self.model_config.last_activation_fn:
-            last_activation_fn = getattr(torch.nn.modules.activation, self.model_config.last_activation_fn)
-            if self.model_config.last_activation_fn == "Softmax":
-                return last_activation_fn(dim=1)
-            elif self.model_config.last_activation_fn == "Sigmoid":
-                return last_activation_fn()
-        return torch.nn.Identity()
+        if self.num_targets == 1:
+            return torch.nn.Sigmoid()
+        return torch.nn.Softmax(dim=1)
 
     # ----------------------------- initialization of input layers ---------------------------------
 
