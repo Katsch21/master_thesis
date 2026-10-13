@@ -120,8 +120,8 @@ class FeatureStatisticCache(BaseCacher):
         )
         return mean, std
 
-    def __str__(self):
-        self._str()
+    def __str__(self) -> str:
+        return self._str()
 
     def verbose_statistics(self):
         """
@@ -136,39 +136,37 @@ class FeatureStatisticCache(BaseCacher):
 
     def compute_statistics(self) -> tuple[torch.Tensor, torch.Tensor]:
         """
-        Calculates the weighted mean and standard deviation over all subphase spaces of the sampler.
+        Calculates the weighted mean and standard deviation over all processes of the sampler.
 
-        Each registered process contributes its masked mean and variance, weighted
-        by its relative weight. Padding entries are excluded via a mask, since they
-        are placeholders and would otherwise pull the mean towards the dummy value.
-        The reduction runs in float64 because the later square root is numerically
-        sensitive to the large dynamic range of the raw four-momenta.
+        Each process contributes its masked mean and variance. The processes are
+        combined via the law of total variance, so the result describes the weighted
+        mixture the network actually sees:
 
-        Args:
-            sampler (ProcessSampler): Sampler managing the processes to compute statistics over.
-            padding_values (int, optional): List of padding_values per feature, or single value. Padding value are ignored in the calculation of the statistics. Defaults to None, which means no padding.
-            return_dummy (bool): Return dummy values that describe Identity transformation. This does not compute the statistics, and are a good option when one load pretrained weights anyway.
+            Var_total = sum_i w_i * Var_i + sum_i w_i * (mu_i - mu_total)^2
+                        (within processes)   (between processes)
+
+        Padding entries are excluded via a mask, since they are placeholders and would
+        otherwise pull the mean towards the dummy value. The reduction runs in float64
+        because the later square root is numerically sensitive to the large dynamic
+        range of the raw four-momenta.
 
         Returns:
-            tuple[torch.Tensor, torch.Tensor]: Weighted mean and weighted standard deviation per feature, shape [num_features] each.
-
+            tuple[torch.Tensor, torch.Tensor]: Weighted mean and standard deviation
+                per feature, shape [num_features] each (float64).
 
         Raises:
-            ValueError: If the padding values are neither scalar nor of shape [num_features].
-
+            ValueError: If the padding values are neither scalar nor of shape [num_features],
+                or if a feature is fully masked (NaN mean) in a process.
         """
         if self.return_dummy:
             return self.dummy_statistics()
 
         logger_inst.info("Calculate mean and std over all subphase spaces")
-        weighted_means = []
-        weighted_vars = []
 
-        # uid-keyed throughout — no more relying on two separately-generated dicts
-        # happening to share the same key space (that was pid-only, coincidental,
-        # and no longer holds now that set_attr's accessors are gone).
+        # per-process results are collected first and combined at the end,
+        # since the between-term needs the total mean, which is only known afterwards
+        means, variances, weights = [], [], []
 
-        # get all processes that are registered
         processes = self.sampler.registry.all()  # dict[uid, Process]
 
         for current_pid_idx, (uid, proc) in enumerate(processes.items(), start=1):
@@ -186,24 +184,30 @@ class FeatureStatisticCache(BaseCacher):
                     f"Padding values need to be of shape [num_features] or single value, got {ignore_tensor.shape}"
                 )
 
-            # calculate masked statistics
-            # doing this calculation with float 64 due to overflow issues when using sqrt later
+            # masked statistics per process (float64 due to overflow issues with sqrt later)
             include_mask = ~(array == ignore_tensor)
             masked_mean = torch.masked.mean(input=array, mask=include_mask, dim=0, dtype=torch.float64)
             if torch.any(masked_mean.isnan()):
-                from IPython import embed
-                embed(header=f"{uid} is nan check feature_array and sampler")
+                # raise instead of embed(): embed() would hang forever in batch jobs
+                raise ValueError(f"Process {uid} has a NaN mean, check for fully padded features in the sampler.")
 
-            # a feature with 1 event will return a NaN for its variance.
-            # in this case a variance of 1 should be used
+            # a feature with 1 event returns NaN for its variance -> use variance of 1
             masked_var = torch.masked.var(input=array, mask=include_mask, dim=0, dtype=torch.float64)
             masked_var = torch.nan_to_num(masked_var, nan=1.0)
 
-            weighted_means.append(masked_mean * proc.relative_weight)
-            weighted_vars.append(masked_var * proc.relative_weight)
+            means.append(masked_mean)
+            variances.append(masked_var)
+            weights.append(proc.relative_weight)
 
-        sum_of_weights = sum(proc.relative_weight for proc in processes.values())
-        w_avg_mean = torch.sum(torch.stack(weighted_means, axis=0), axis=0) / sum_of_weights
-        w_avg_var = torch.sum(torch.stack(weighted_vars, axis=0), axis=0) / sum_of_weights
-        w_avg_std = torch.sqrt(w_avg_var)
-        return w_avg_mean, w_avg_std
+        # normalized weights as column vector [num_procs, 1] to broadcast over features
+        w = torch.tensor(weights, dtype=torch.float64).unsqueeze(-1)
+        w = w / w.sum()
+
+        means = torch.stack(means, dim=0)          # [num_procs, num_features]
+        variances = torch.stack(variances, dim=0)  # [num_procs, num_features]
+
+        total_mean = (w * means).sum(dim=0)
+        within = (w * variances).sum(dim=0)                       # spread inside each process
+        between = (w * (means - total_mean) ** 2).sum(dim=0)      # spread of the process means
+        total_std = torch.sqrt(within + between)
+        return total_mean, total_std
