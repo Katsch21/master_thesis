@@ -27,6 +27,29 @@ class BaseLoop:
     Base Class that implements are registry where registered loops are categorized
     as training and validation loops.
     The registry is used to check if a given loop function exists and to call the correct function in the training script.
+
+    How to add a new loop (use the *cross_entropy* loops as reference, since they are the most basic implementation):
+        1. Add a method to TrainingLoop (or ValidationLoop) and decorate it with @register_loop(name="my_loop").
+            The name must match TrainingConfig.training_fn (or validation_fn).
+
+        2. Use the argument names of the mode you are in. They differ on purpose-historically:
+            training  -> loss_fn, sampler
+            validation -> loss_fn_inst, sampler_inst
+            Everything else (monitor, model_inst, optimizer_inst, ...) is passed by __call__ as keyword.
+
+        3. Always get predictions via self.separate_prediction(pred, model_inst=model_inst):
+            - first value (probabilities) goes to the returned dict, the monitor expects probabilities
+            - second value (raw head) goes to the loss
+
+        4. Return a dict with the keys: "loss", "predictions", "targets", "event_weights".
+
+        5. Add a rule to FullConfig._compatibility_rules if your loss only works with certain loops or activations.
+
+    Remarks for each loop type:
+        Training loops: sample one batch, then run: zero_grad -> forward -> loss -> backward -> step.
+        Event weights are not part of the training loss, the oversampling takes care of that.
+
+        Validation loops: run over all data via collect_from_generators (eval mode, no gradients) and weight the loss.
     """
 
     REGISTERED_LOOPS = {}
@@ -67,18 +90,22 @@ class BaseLoop:
 
     def separate_prediction(
         self,
-        pred: torch.tensor | tuple[torch.tensor],
-    ) -> tuple[torch.tensor, torch.tensor]:
+        pred: torch.Tensor | tuple[torch.Tensor, torch.Tensor],
+        model_inst: torch.nn.Module,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Depending on the network architecture the output can either be a tuple of prediction and binned prediction
         or just the prediction. To have a uniform interface the singular output uses a dummy value.
 
         Args:
-            pred (torch.tensor | tuple[torch.tensor]): _description_
+            pred (torch.Tensor | tuple[torch.Tensor, torch.Tensor]): Raw model output.
+            model_inst (torch.nn.Module): Model, needed to convert the logging head to probabilities.
 
         Returns:
-            tuple[torch.tensor, torch.tensor]: Tuple of predictions where first value is used for logging and second value is used for optimization.
-            In case of non binned output both values are the same.
+            tuple[torch.Tensor, torch.Tensor]: Returns a tuple of (monitoring_pred, optimization_pred).
+                Monitoring_pred is always a probability.
+                Optimization_pred is the raw head the loss expects.
+                In case of non binned output both derive from the same output, so monitoring and optimization is the same.
         """
         # TODO maybe replace with dictionary?
         is_binned = isinstance(pred, tuple)
@@ -86,8 +113,27 @@ class BaseLoop:
             logging_pred, optimization_pred = pred
         else:
             logging_pred, optimization_pred = pred, pred
+        # only the logging head is converted, the loss must see the raw optimization head
+        return self.as_probabilities(logging_pred, model_inst), optimization_pred
 
-        return logging_pred, optimization_pred
+    def as_probabilities(self, prediction: torch.Tensor, model_inst: torch.nn.Module) -> torch.Tensor:
+        """
+        Turns a raw model output into class probabilities, for monitoring.
+
+        Args:
+            prediction (torch.Tensor): Output of the model, either logits or already activated.
+            model_inst (torch.nn.Module): Model that knows its own last activation layer.
+
+        Returns:
+            torch.Tensor: Class probabilities. The activation is applied at most once.
+        """
+        # model already applied its activation in forward, applying it again would double it
+        if model_inst.use_last_activation:
+            return prediction
+        # raw logits: use exactly the layer the model would have used itself (Softmax or Sigmoid)
+        # the model defines its own last activation function, so we can use it here to ensure consistency
+        return model_inst.last_activation_fn(prediction)
+
 
     def setup(self, monitor=None, model_inst=None, kind_of_data="batch"):
         if monitor is not None:
@@ -198,16 +244,22 @@ class TrainingLoop(BaseLoop):
         monitor=None,
         **kwargs,
     ):
-        # this loss never uses a binning network thus, a single prediction is expected
+        """
+        Reference training loop, copy this when writing a new one.
+        See BaseLoop for further instructions.
+        """
         optimizer_inst.zero_grad()
 
         events = sampler.sample_batch(sample_from=sample_columns, device=device)
         categorical, continuous = events.get("categorical"), events.get("continuous")
         targets = events["targets"].reshape(self.target_shape)
-        predictions = model_inst(categorical_inputs=categorical, continuous_inputs=continuous)
+
+        pred = model_inst(categorical_inputs=categorical, continuous_inputs=continuous)
+        # loss gets the raw logits (CE has softmax built in), monitor gets probabilities
+        predictions, optimization_predictions = self.separate_prediction(pred, model_inst=model_inst)
 
         # training does not need event weights. The oversampling algorithm takes care of this
-        loss = loss_fn(predictions, targets, event_weights=None)
+        loss = loss_fn(optimization_predictions, targets, event_weights=None)
         loss.backward()
         optimizer_inst.step()
         return {
@@ -239,7 +291,8 @@ class TrainingLoop(BaseLoop):
             continuous_inputs=continuous,
         )
 
-        predictions, optimization_predictions = self.separate_prediction(pred)
+        # loss expect softmax binned output , monitor is unbinnet prediction
+        predictions, optimization_predictions = self.separate_prediction(pred=pred, model_inst=model_inst)
 
         loss = loss_fn(
             prediction=optimization_predictions,
@@ -283,7 +336,7 @@ class ValidationLoop(BaseLoop):
         **kwargs,
     ) -> dict[torch.tensors]:
         """
-        During Validation no sampling is used, instead we loop over all unsampeled Datasets.
+        During Validation no sampling is used, instead we loop over all unsampled Datasets.
         The *model_inst* is the DNN you want to use, while *sampler_inst* should be a ValidationSampler.
         Which column is aggregated over all datasets is defined in *sample_columns*.
         In the end a concatenation is done over the event axis. If this step should be skipped for
@@ -327,7 +380,8 @@ class ValidationLoop(BaseLoop):
                 )
                 # network can output either binned or non binned predictions
                 # depending on model architecture, separate_prediction gives us a uniform interface to handle both cases
-                class_pred, loss_pred = self.separate_prediction(pred)
+                # this separation also guarantee that class_pred are probabilities and loss_pred is in the form that the loss needs it
+                class_pred, loss_pred = self.separate_prediction(pred, model_inst=model_inst)
 
                 # -- collect data that is always done --
 
@@ -345,9 +399,6 @@ class ValidationLoop(BaseLoop):
                     torch.full((class_pred.shape[0], 1), uid[1], device=device)
                     )
 
-                if not model_inst.use_last_activation:
-                    # TODO if sigmoid is necessary add switch case
-                    class_pred = torch.softmax(class_pred, dim=1)
                 collected_data["class_predictions"].append(class_pred)
 
                 # for loss calculation, can be the same as class_prediction e.g. crossentropy
@@ -356,9 +407,6 @@ class ValidationLoop(BaseLoop):
                 # -- collect dynamic data --
                 for k in dynamic_data.keys():
                     dynamic_data[k].append(events.pop(k))
-
-                # it is necessary to ensure the same shape
-                # when mapping of activation function is on (only having softmax) do not apply them, else do apply
 
             # combine datas
             collected_data.update(dynamic_data)
@@ -386,7 +434,8 @@ class ValidationLoop(BaseLoop):
         **kwargs,
     ):
         """
-        Used for normal loss functions like Crossentropy.
+        Reference training loop, copy this when writing a new one.
+        See BaseLoop for further instructions.
         """
         to_sample_columns = self.necessary_columns.union(sample_columns)
         tensors = self.collect_from_generators(
@@ -396,7 +445,7 @@ class ValidationLoop(BaseLoop):
             skip_concatenate_columns=("",),
             device=device,
         )
-        # validation needs to be reweightes by sample weights
+        # validation needs to be weight by sample weights
         loss = loss_fn_inst(
             tensors["loss_predictions"],
             tensors["targets"],
