@@ -65,7 +65,8 @@ class ModelConfig:
     enable_rotation: bool = False  # turn off rotation, currently data is rotated in preprocessing by Marcel
     enable_binning: bool = True  # turn off binning layer, for example when using a model that does not support binning
 
-    use_last_activation: bool = True  # noqa use last activation defined inside model. If false logits are returned Marcel: False
+    # needs to be false for CrossEntropy and True for SignalEfficiency
+    use_last_activation: bool = False  # use last activation defined inside model. If false logits are returned Marcel: False
 
     rotation: RotationLayerConfig = field(default_factory=RotationLayerConfig)
 

@@ -29,19 +29,18 @@ KERNEL_MAP = {
 }
 
 __all__ = [
-    "KERNEL_MAP"
-    "create_kernels",
+    "KERNEL_MAP",
     "BinningLayer",
 
     "BaseKernel",
 
     "TanhKernel",
-    "TanhUnderflow"
-    "TanhOverflow"
+    "TanhUnderflowKernel"
+    "TanhOverflowKernel"
 
     "GaussianKernel",
-    "UnderflowKernel",
-    "OverflowKernel",
+    "GaussianUnderflowKernel",
+    "GaussianOverflowKernel",
 
     "LinearKernel",
     "LinearUnderflowKernel",

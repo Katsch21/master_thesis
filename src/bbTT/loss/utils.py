@@ -24,4 +24,6 @@ def init_loss(full_config, device=CPU_DEVICE, **kwargs):
 
         train_loss_fn = SignalEfficiency(is_training=True, **loss_cfg)
         validation_loss_fn = SignalEfficiency(is_training=False, **loss_cfg)
+    else:
+        raise ValueError(f"Chosen loss {cfg.loss_fn!r} has no initialization in init_loss")
     return train_loss_fn, validation_loss_fn

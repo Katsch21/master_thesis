@@ -5,7 +5,7 @@ from typing import Literal
 
 from bbTT.configs.utils import choice_check
 
-LOSS_CHOICE = Literal["cross_entropy", "signal_efficiency", "signal_efficiency_binning_aware"]
+LOSS_CHOICE = Literal["cross_entropy", "signal_efficiency"]
 SIGNAL_EFFICIENCY_LOSS_MODE = Literal["full", "no_unc", "approximation"]
 
 
@@ -35,7 +35,7 @@ class LossConfig:
     def active_config(self):
         return {
             "signal_efficiency": self.signal_efficiency,
-            "weighted_cross_entropy": self.weighted_cross_entropy,
+            "cross_entropy": self.weighted_cross_entropy,
         }[self.loss_fn]
 
     def __post_init__(self):

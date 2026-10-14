@@ -7,7 +7,7 @@ from bbTT.configs.utils import choice_check
 from bbTT.utils.transformations import cubic, linspace, logit, tangent
 
 BINNING_CHOICE = Literal["logit", "tangent", "linear", "cubic"]
-KERNEL_CHOICE = Literal["GaussianKernelV3", "GaussianKernelFinal", "Tanh"]
+KERNEL_CHOICE = Literal["Tanh"] # Gaussian Kernel and Linear are unfinished
 
 # --- Binning functions and their corresponding configs
 
@@ -63,9 +63,6 @@ class BinningConfig:
                 "right_notch": 0.2,  # shift transition function towards bin center from right
                 "bin_height": 1,  # bin height should stay 1 normally
                 "absolute_notch": False,  # notches are
-            },
-            "GaussianKernelFinal": {
-                "smoothing_width": 0.0,  # width of gaussian where it goes from 100% to 10%
             },
             "Tanh": {
                 "eps": 1e-3,  # needs to be by default between 0 and 1
