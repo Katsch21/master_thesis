@@ -33,14 +33,18 @@ class FullConfig:
 
     def _compatibility_rules(self) -> list[tuple[Callable[[], bool], str]]:
         """
-        Each rule: (is_violated, message). is_violated() returning True raises.
+        Each rule: (is_violated, message).
+        When is_violated() returning True a raise happens.
         Thus all rules describe the FORBIDDEN  state!
+        E.g. "Cross Entropy Loss expects the correct choices of Loop" means that if the rule is violated, the current choice of Loop is not correct for Cross Entropy Loss.
         """
         return [
+            # Optimizer
             (
                 lambda: self.optimizer_config.optimizer_choice == "sam" and self.training_config.training_fn != "sam",
                 f"When using Optimizer SAM, training_fn must be 'sam', currently: {self.training_config.training_fn!r}",
             ),
+            # Loops needs to be correct
             (
                 lambda: (
                     self.loss_config.loss_fn == "cross_entropy"
@@ -61,6 +65,7 @@ class FullConfig:
                 f"training -> {self.training_config.training_fn}"
                 f"validation -> {self.training_config.validation_fn}",
             ),
+            # Loss function and Activation compatibility
             (
                 lambda: (
                     (self.loss_config.loss_fn == "cross_entropy")
