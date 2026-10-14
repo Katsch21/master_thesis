@@ -6,7 +6,7 @@ from typing import Literal
 from bbTT.configs.utils import choice_check
 
 MODEL_CHOICE = Literal["residual", "dense", "lbn_dense", "binned_lbn_dense"]
-TRAINING_LOOP_CHOICE = Literal["cross_entropy", "sam", "signal_efficiency"]
+TRAINING_LOOP_CHOICE = Literal["cross_entropy", "signal_efficiency"]
 VALIDATION_LOOP_CHOICE = Literal["signal_efficiency", "cross_entropy"]
 SAMPLING_STRATEGY = Literal["largest_remainder", "stochastic"]
 

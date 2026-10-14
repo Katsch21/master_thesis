@@ -188,50 +188,6 @@ class TrainingLoop(BaseLoop):
         if monitor is not None:
             monitor.check_gradient_correctness(expected_names=model_inst.monitored_gradient_names())
 
-    @register_loop(name="sam")
-    def sam_optimizer(
-        self,
-        model_inst,
-        loss_fn,
-        optimizer_inst,
-        sampler,
-        device,
-        *args,
-        **kwargs,
-    ):
-        optimizer_inst.zero_grad()
-
-        events = sampler.sample_batch(device=device)
-        categorical, continuous = events.get("categorical"), events.get("continuous")
-        targets = events["targets"].reshape(self.target_shape)
-
-        pred = model_inst(categorical_inputs=categorical, continuous_inputs=continuous)
-        predictions, optimization_predictions = self.separate_prediction(pred)
-
-        loss = loss_fn(
-            optimization_predictions,
-        )
-        loss.backward()
-
-        # optimizer routine differs for sam optimizers
-        # first step included scouting, second step is the actual optimized step, batch norm needs to be disabled for that
-        optimizer_inst.first_step(zero_grad=True)
-
-        # second forward step with disabled batchnorm running stats in second forward step
-        optimizer_inst.disable_running_stats(model_inst)
-        pred_2 = model_inst(categorical_inputs=categorical, continuous_inputs=continuous)
-        loss_fn(pred_2, targets).backward()
-
-        optimizer_inst.second_step(zero_grad=True)
-        optimizer_inst.enable_running_stats(model_inst)  # <- this is the important line
-
-        return {
-            "loss": loss,
-            "predictions": predictions,
-            "targets": targets,
-            "event_weights": events["product_of_weights"],
-        }
-
     @register_loop(name="cross_entropy")
     def cross_entropy_loss(
         self,

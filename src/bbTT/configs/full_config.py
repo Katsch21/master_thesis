@@ -39,11 +39,6 @@ class FullConfig:
         E.g. "Cross Entropy Loss expects the correct choices of Loop" means that if the rule is violated, the current choice of Loop is not correct for Cross Entropy Loss.
         """
         return [
-            # Optimizer
-            (
-                lambda: self.optimizer_config.optimizer_choice == "sam" and self.training_config.training_fn != "sam",
-                f"When using Optimizer SAM, training_fn must be 'sam', currently: {self.training_config.training_fn!r}",
-            ),
             # Loops needs to be correct
             (
                 lambda: (

@@ -10,6 +10,12 @@ class SAM(torch.optim.Optimizer):
     Usage is described in the README of the repository.
 
     Needs to adjust optimizer init and trainloop.
+
+
+    STATUS:
+    parked, not wired into configs, loops or the optimizer factory.
+    When reviving: call it through step(closure) so that it works with every loss, and note that
+    sam_training_routine below is outdated (wrong model call signature).
     """
 
     def __init__(self, params, base_optimizer, rho=0.05, adaptive=False, **kwargs):

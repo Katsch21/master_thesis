@@ -1,7 +1,6 @@
 import torch
 
 from bbTT.optimizer import weight_decay
-from bbTT.optimizer.SAM import SAM
 
 
 def init_optimizer(full_config, model_inst):
@@ -22,15 +21,6 @@ def init_optimizer(full_config, model_inst):
         optimizer_inst = torch.optim.AdamW(
             weight_decay_parameters,
             lr=full_config.optimizer_config.active_config.lr,
-            weight_decay=global_weight_decay_default,
-        )
-    elif name == "sam":
-        optimizer_inst = SAM(
-            weight_decay_parameters,
-            torch.optim.AdamW,
-            lr=full_config.optimizer_config.active_config.lr,
-            rho=2.0,
-            adaptive=True,
             weight_decay=global_weight_decay_default,
         )
     else:

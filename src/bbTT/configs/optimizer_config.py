@@ -5,7 +5,7 @@ from typing import Literal
 
 from bbTT.configs.utils import choice_check
 
-OPTIMIZER_CHOICE = Literal["adamw", "sam"]
+OPTIMIZER_CHOICE = Literal["adamw"]
 
 
 @dataclass
@@ -13,11 +13,6 @@ class ADAMWConfig:
     decay_factor: float = 500  # factor of L2 - Marcel: 500
     normalize: bool = True  # normalize weight decay factor to number of parameters
     lr: float = 3e-3  # start learning rate
-
-
-@dataclass
-class SAMConfig:
-    TODO = None
 
 
 @dataclass
@@ -31,5 +26,4 @@ class OptimizerConfig:
     def active_config(self):
         return {
             "adamw": ADAMWConfig,
-            "sam": SAMConfig,
         }[self.optimizer_choice]
