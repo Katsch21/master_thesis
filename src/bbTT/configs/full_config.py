@@ -48,8 +48,8 @@ class FullConfig:
             (
                 lambda: (
                     self.loss_config.loss_fn == "cross_entropy"
-                    or self.training_config.training_fn != "cross_entropy"
-                    or self.training_config.validation_fn != "cross_entropy"
+                    and ((self.training_config.training_fn != "cross_entropy")
+                    or (self.training_config.validation_fn != "cross_entropy"))
                 ),
                 f"Cross Entropy Loss expects the correct choices of Loop, current choice is:"
                 f"training -> {self.training_config.training_fn}"
