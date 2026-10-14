@@ -13,9 +13,14 @@ class WeightedCrossEntropy(torch.nn.CrossEntropyLoss):
         reduction = self.reduction
         if event_weights is not None:
             self.reduction = "none"
-            # torch.nn.CrossEntropyLoss ALREADY has Softmax built in, so no need to apply it here
-            loss = super().forward(prediction, target)
-            self.reduction = reduction
+
+            try:
+                # torch.nn.CrossEntropyLoss ALREADY has Softmax built in, so no need to apply it here
+                loss = super().forward(prediction, target)
+            finally:
+                # restore the mode even if the forward fails, instance is shared between calls.
+                # only necessary for debugging, but comes at no cost
+                self.reduction = reduction
 
             # dot product is only defined for flat tensors, so flatten
             loss = torch.flatten(loss)
