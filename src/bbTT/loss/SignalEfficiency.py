@@ -73,11 +73,33 @@ class SignalEfficiency(HookableMixin, torch.nn.Module):
     def stabilize(self, x, eps):
         return torch.clamp(x, min=eps)
 
-    def _loss(self, x):
-        return 1 / x.sum()
+    def loss(self, x):
+        """
+        Final Loss formulation.
 
-    def loss(self, *args, **kwargs):
-        return self._loss(*args, **kwargs)
+        Args:
+            x (torch.tensor): Prediction Vektor given by the network
+
+        Returns:
+            torch.tensor: Scalar loss value
+        """
+        # 0 is unoptimal, - inf would be optimal for minimum problem
+        return - self.total_asimov(x)
+
+    def total_asimov(self, asimov_per_bin: torch.tensor) -> torch.tensor:
+        """
+        The total asimov is the square-root sum of all squared significances per bin
+
+        Args:
+            asimov_per_bin (torch.tensor): Asimov Significance per bin, expected shape: [event, bin, 1]
+
+        Returns:
+            (torch.tensor): Reduced total Asimov over all bins
+        """
+        squared_asimov = torch.square(asimov_per_bin)
+        total_asimov = squared_asimov.sum()
+        return torch.sqrt(total_asimov)
+
 
     def monitored_gradient_names(self):
         return []

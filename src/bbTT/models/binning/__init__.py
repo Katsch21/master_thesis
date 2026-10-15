@@ -33,10 +33,12 @@ __all__ = [
     "BinningLayer",
 
     "BaseKernel",
+    "UnderflowKernel",
+    "OverflowKernel",
 
     "TanhKernel",
-    "TanhUnderflowKernel"
-    "TanhOverflowKernel"
+    "TanhUnderflowKernel",
+    "TanhOverflowKernel",
 
     "GaussianKernel",
     "GaussianUnderflowKernel",
