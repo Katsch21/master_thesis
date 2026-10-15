@@ -177,6 +177,7 @@ class TrainingLoop(BaseLoop):
 
     def setup(self, monitor=None, model_inst=None, kind_of_data="batch"):
         super().setup(monitor, model_inst, kind_of_data)
+        model_inst.train() # ensure that model is in training mode
         model_inst.enable_gradient_hooks()
 
     def cleanup(self, monitor=None, model_inst=None, optimizer_inst=None, scheduler_handler_inst=None, **kwargs):
@@ -276,6 +277,7 @@ class ValidationLoop(BaseLoop):
     def setup(self, monitor=None, model_inst=None, kind_of_data="batch"):
         super().setup(monitor, model_inst, kind_of_data)
         # evaluation never look into gradients
+        model_inst.eval() # ensure that model is in validation mode
         model_inst.disable_gradient_hooks()
 
     def cleanup(self, monitor, model_inst, **kwargs):
@@ -310,7 +312,6 @@ class ValidationLoop(BaseLoop):
         """
         device = torch.device(device) if isinstance(device, str) else device
 
-        model_inst.eval()
         collected_data = {
             "class_predictions": [],
             "targets": [],
