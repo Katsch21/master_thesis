@@ -112,11 +112,28 @@ class ProcessSampleCursor:
     - Process stays a stateless, shareable data container
     - multiple independent cursors can sample the same Process without interfering
         (e.g. a train cursor and a monitoring/peek cursor over the same data)
+
+    Each cursor owns a private ``torch.Generator`` seeded with *seed*. The sequence of
+    permutations therefore depends only on *seed* and on how often the cursor was reset,
+    never on other random operations in the program (other cursors, dropout, init, ...).
+    This makes it 100% reproducible when reloading cursor states, since their generator has no noise.
     """
 
-    def __init__(self, process: Process, randomize: bool = True):
+    def __init__(self, process: Process, randomize: bool = True, seed: int = 0):
+        """
+        Args:
+            process (Process): Data container to iterate over.
+            randomize (bool): Shuffle indices on every reset. If False, indices are in order.
+            seed (int): Seed for the cursor's private generator. Use a different seed per cursor,
+                otherwise all cursors produce identical permutations (see ProcessSampler).
+        """
         self.process = process
         self.randomize = randomize
+        self.seed = seed
+        self.generator = torch.Generator()
+        self.generator.manual_seed(self.seed)
+        # generator state before the permutation in self.indices was drawn, see load_state_dict
+        self._state_before_reset: torch.Tensor = self.generator.get_state()
         self.reset()
 
     def reset(self):
@@ -124,7 +141,48 @@ class ProcessSampleCursor:
         self.current_idx = 0
         self.last_idx = None
         n = len(self.process)
-        self.indices = torch.randperm(n) if self.randomize else torch.arange(n)
+
+        # remember the state first, so the same permutation can be drawn again on load
+        self._state_before_reset = self.generator.get_state()
+        self.indices = torch.randperm(n, generator=self.generator) if self.randomize else torch.arange(n)
+
+
+    def state_dict(self) -> dict[str, int | torch.Tensor]:
+        """
+        Minimal description of the iteration state. Together with the process data this
+        allows to continue sampling at exactly the same position.
+
+        Returns:
+            dict[str, int | torch.Tensor]: ``seed`` (for a consistency check), ``generator_state``
+                (state before the current permutation was drawn) and ``current_idx``.
+        """
+        return {
+            "seed": self.seed,
+            "generator_state": self._state_before_reset.clone(),
+            "current_idx": self.current_idx,
+        }
+
+    def load_state_dict(self, state: dict[str, int | torch.Tensor]) -> None:
+            """
+            Restore the iteration state produced by ``state_dict``. The current permutation is
+            drawn again from the stored generator state, so the cursor continues with the same
+            indices it would have produced originally. ``last_idx`` is not restored, a ``peek``
+            directly after loading raises until the next ``sample``.
+
+            Args:
+                state (dict[str, int | torch.Tensor]): Output of ``state_dict`` of a cursor over the same process.
+
+            Raises:
+                ValueError: If the stored seed differs from the cursor's seed. The state would still
+                    load, but the mismatch signals that the sampler was built with another config.
+            """
+            if state["seed"] != self.seed:
+                raise ValueError(
+                    f"Cursor seed mismatch for {self.process.uid}: stored {state['seed']}, cursor has {self.seed}."
+                )
+            self.generator.set_state(state["generator_state"])
+            self.reset()
+            self.current_idx = state["current_idx"]
 
     def sample_wrong(
         self, sample_from: tuple[str, ...], number: int = None, device=CPU_DEVICE
