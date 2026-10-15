@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Iterable, Optional
 
 import torch
 import torch.utils.data as t_data
+import zlib
 
 from bbTT.data_handling.sampling.batch_size_calculation import BatchSizeAllocator
 from bbTT.data_handling.sampling.process import Process, ProcessSampleCursor
@@ -100,6 +101,7 @@ class ProcessSampler(t_data.Sampler):
         sample_ratio: Optional[dict[str, float]] = None,
         sub_sample_ratio: Optional[dict[str, float]] = None,
         target_map: Optional[dict[str, int]] = None,
+        seed: int = 0,
         weight_aggregator_inst=None,
         kind="training",
         bs_allocator=None,
@@ -127,11 +129,61 @@ class ProcessSampler(t_data.Sampler):
         # self.allocator = BatchSizeAllocator(min_size=min_size)
         self.allocator = bs_allocator
         self.kind = kind
+        self.seed = seed
+
+    def cursor_seed(self, uid: tuple[str, str]) -> int:
+        """
+        Derive a stable per-process seed from the sampler's base seed and the process uid.
+
+        ``zlib.crc32`` is used instead of ``hash`` because string hashing is randomized per
+        python process (PYTHONHASHSEED); the seed must be identical across runs, otherwise a
+        restored cursor state would not match the cursor it is loaded into.
+
+        Args:
+            uid (tuple[str, str]): (process_type, process_id) of the process.
+
+        Returns:
+            int: Seed for the cursor of this process.
+        """
+        return self.seed + zlib.crc32(repr(uid).encode())
 
     def add_process_instance(self, process: Process, randomize: bool = False):
         """Register a Process with the sampler."""
         self.registry.add(process)
-        self.cursors[process.uid] = ProcessSampleCursor(process, randomize=randomize)
+        # each process gets a unique seed by the sampler to decouple their random generators
+        self.cursors[process.uid] = ProcessSampleCursor(process, randomize=randomize, seed=self.cursor_seed(process.uid))
+
+    def state_dict(self) -> dict[tuple[str, str], dict]:
+        """
+        Iteration state of every registered cursor, keyed by uid. Only plain data
+        (ints and tensors) ends up in here, so the result can go straight into torch.save.
+
+        Returns:
+            dict[tuple[str, str], dict]: uid -> cursor state, see ProcessSampleCursor.state_dict.
+        """
+        return {uid: cursor.state_dict() for uid, cursor in self.cursors.items()}
+
+    def load_state_dict(self, state: dict[tuple[str, str], dict]) -> None:
+        """
+        Restore every cursor from a state produced by state_dict. The set of registered
+        processes must match exactly: a cursor without state would silently continue at
+        its own position and break the "same batches again" guarantee.
+
+        Args:
+            state (dict[tuple[str, str], dict]): Output of state_dict of a sampler over the same processes.
+
+        Raises:
+            ValueError: If the stored uids and the registered uids differ.
+        """
+        stored, registered = set(state), set(self.cursors)
+        if stored != registered:
+            raise ValueError(
+                "Sampler state does not match registered processes.\n"
+                f"Missing in state: {sorted(registered - stored)}\n"
+                f"Unknown in state: {sorted(stored - registered)}"
+            )
+        for uid, cursor_state in state.items():
+            self.cursors[uid].load_state_dict(cursor_state)
 
     def __contains__(self, uid: tuple[str, str]) -> bool:
         return uid in self.registry
@@ -312,6 +364,8 @@ def create_sampler(
     batch_strategy = init_strategy(sampler_config=full_config.sampler_config)
     batch_size_allocator = BatchSizeAllocator(rounding=batch_strategy)
 
+    kind = ("training" if train else "validation")
+
     process_sampler = ProcessSampler(
         batch_size=full_config.training_config.training_batch_size,
         sample_ratio=(full_config.sampler_config.sample_ratio or {"dy": 0.25, "tt": 0.25, "hh": 0.5}),
@@ -319,13 +373,15 @@ def create_sampler(
         weight_aggregator_inst=weight_aggregator_inst,
         sub_sample_ratio=full_config.sampler_config.sub_process_ratios,
         bs_allocator=batch_size_allocator,
+        seed=full_config.training_config.seed,
+        kind=kind,
     )
 
     for uid in list(events.keys()):
         process_type, process_id = uid
 
         logger_inst.debug(
-            f"Add {process_type} pid: {process_id} to " + ("Train" if train else "Validation") + " Sampler"
+            f"{kind}: Add {process_type} pid: {process_id}"
         )
         arrays = events.pop(uid)
 

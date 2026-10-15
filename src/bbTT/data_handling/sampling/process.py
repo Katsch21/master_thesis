@@ -80,29 +80,55 @@ class Process(t_data.Dataset):
     def __getitem__(self, idx):
         return self.continuous[idx], self.categorical[idx], self.targets[idx]
 
-    def per_event_sample_weight(self, n: int) -> torch.Tensor:
-        """Single source of truth for the sample_weights value, used by sample/peek/generator alike."""
+    def per_event_sample_weight(self, n: int, denominator: int ) -> torch.Tensor:
+        """
+        Single source of truth for the sample_weights value, used by sample/peek/generator alike.
+
+        The weight is chosen such that the sum over the delivered events equals
+        ``normalization_whole_sum``. The caller therefore has to pass how many events the
+        delivered set contains in total:
+            - the process' ``sample_size`` for a batch,
+            - ``len(process)`` for a full pass.
+
+        Using ``sample_size`` for a full pass over a training process would
+        scale the weights by ``len(process) / sample_size``.
+
+        Args:
+            n (int): Number of events in this chunk, i.e. the length of the returned tensor.
+            denominator (int): Total number of events the delivered set consists of.
+
+        Returns:
+            torch.Tensor: Shape (n, 1), every entry ``normalization_whole_sum / denominator``.
+        """
+
         return torch.full(
             (n, 1),
-            self.weights_statistics.normalization_whole_sum / self.sample_size,
+            self.weights_statistics.normalization_whole_sum / denominator,
         )
 
-    def gather(self, idx: torch.Tensor, sample_from: tuple[str, ...], device=CPU_DEVICE) -> dict[str, torch.Tensor]:
+    def gather(
+        self,
+        idx: torch.Tensor,
+        sample_from: tuple[str, ...],
+        sample_weight_denominator: int,
+        device=CPU_DEVICE
+        ) -> dict[str, torch.Tensor]:
         """
         Pure lookup: given indices + attribute names, return the corresponding batch dict.
         No mutation, no cursor state — sample()/peek()/generator on ProcessSampleCursor all
         reduce to calling this.
 
         Args:
-            idx: Indices to gather.
-            sample_from: Attribute names to gather (e.g. "continuous", "categorical", "targets").
-            device: Device to move tensors to.
+            idx (torch.Tensor): Indices to gather.
+            sample_from (tuple[str, ...]): Attribute names to gather (e.g. "continuous", "categorical", "targets").
+            sample_weight_denominator (int): Total size of the delivered set, see per_event_sample_weight.
+            device (torch.device): Device to move tensors to.
 
         Returns:
             Dict of tensors for each requested attribute, plus "sample_weights".
         """
         out = {attribute: getattr(self, attribute)[idx].to(device) for attribute in sample_from}
-        out["sample_weights"] = self.per_event_sample_weight(len(idx)).to(device)
+        out["sample_weights"] = self.per_event_sample_weight(len(idx), denominator=sample_weight_denominator).to(device)
         return out
 
 
@@ -115,9 +141,8 @@ class ProcessSampleCursor:
     - multiple independent cursors can sample the same Process without interfering
         (e.g. a train cursor and a monitoring/peek cursor over the same data)
 
-    Each cursor owns a private ``torch.Generator`` seeded with *seed*. The sequence of
-    permutations therefore depends only on *seed* and on how often the cursor was reset,
-    never on other random operations in the program (other cursors, dropout, init, ...).
+    Each cursor owns a private ``torch.Generator`` seeded with *seed*.
+    For checkpoints generator states are stored and loaded.
     This makes it 100% reproducible when reloading cursor states, since their generator has no noise.
     """
 
@@ -132,10 +157,10 @@ class ProcessSampleCursor:
         self.process = process
         self.randomize = randomize
         self.seed = seed
-        self.generator = torch.Generator()
-        self.generator.manual_seed(self.seed)
+        self.rng = torch.Generator()
+        self.rng.manual_seed(self.seed)
         # generator state before the permutation in self.indices was drawn, see load_state_dict
-        self._state_before_reset: torch.Tensor = self.generator.get_state()
+        self._state_before_reset: torch.Tensor = self.rng.get_state()
         self.reset()
 
     def reset(self):
@@ -145,8 +170,8 @@ class ProcessSampleCursor:
         n = len(self.process)
 
         # remember the state first, so the same permutation can be drawn again on load
-        self._state_before_reset = self.generator.get_state()
-        self.indices = torch.randperm(n, generator=self.generator) if self.randomize else torch.arange(n)
+        self._state_before_reset = self.rng.get_state()
+        self.indices = torch.randperm(n, generator=self.rng) if self.randomize else torch.arange(n)
 
     def state_dict(self) -> dict[str, int | torch.Tensor]:
         """
@@ -181,7 +206,7 @@ class ProcessSampleCursor:
             raise ValueError(
                 f"Cursor seed mismatch for {self.process.uid}: stored {state['seed']}, cursor has {self.seed}."
             )
-        self.generator.set_state(state["generator_state"])
+        self.rng.set_state(state["generator_state"])
         self.reset()
         self.current_idx = state["current_idx"]
 
@@ -210,7 +235,12 @@ class ProcessSampleCursor:
 
         self.last_idx = idx
         self.current_idx = next_idx
-        return self.process.gather(idx=idx, sample_from=sample_from, device=device)
+        return self.process.gather(
+            idx=idx,
+            sample_from=sample_from,
+            device=device,
+            sample_weight_denominator=self.process.sample_size,
+            )
 
     def sample(
         self,
@@ -256,13 +286,23 @@ class ProcessSampleCursor:
         idx = torch.cat(chunks) if chunks else self.indices[:0]
 
         self.last_idx = idx
-        return self.process.gather(idx=idx, sample_from=sample_from, device=device)
+        return self.process.gather(
+            idx=idx,
+            sample_from=sample_from,
+            device=device,
+            sample_weight_denominator=self.process.sample_size,
+            )
 
     def peek(self, sample_from: tuple[str, ...], device=CPU_DEVICE) -> dict[str, torch.Tensor]:
         """Return the last sampled batch again, without advancing the cursor."""
         if self.last_idx is None:
             raise RuntimeError("No batch has been sampled yet. Call sample() before peek().")
-        return self.process.gather(idx=self.last_idx, sample_from=sample_from, device=device)
+        return self.process.gather(
+            idx=self.last_idx,
+            sample_from=sample_from,
+            device=device,
+            sample_weight_denominator=self.process.sample_size,
+            )
 
     def generator(self, sample_from: tuple[str, ...], batch_size: int = -1, device=CPU_DEVICE):
         """
@@ -281,5 +321,11 @@ class ProcessSampleCursor:
         batch_size = n if batch_size == -1 else batch_size
         bounds = [(s, min(s + batch_size, n)) for s in range(0, n, batch_size)]
 
+        # full pass: the delivered set is the whole process, not one batch
         for start, end in bounds:
-            yield self.process.gather(torch.arange(start, end), sample_from, device)
+            yield self.process.gather(
+                idx=torch.arange(start, end),
+                sample_from=sample_from,
+                device=device,
+                sample_weight_denominator=n,
+                )
