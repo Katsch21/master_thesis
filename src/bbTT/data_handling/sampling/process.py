@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional
 
 import torch
@@ -146,7 +148,6 @@ class ProcessSampleCursor:
         self._state_before_reset = self.generator.get_state()
         self.indices = torch.randperm(n, generator=self.generator) if self.randomize else torch.arange(n)
 
-
     def state_dict(self) -> dict[str, int | torch.Tensor]:
         """
         Minimal description of the iteration state. Together with the process data this
@@ -163,26 +164,26 @@ class ProcessSampleCursor:
         }
 
     def load_state_dict(self, state: dict[str, int | torch.Tensor]) -> None:
-            """
-            Restore the iteration state produced by ``state_dict``. The current permutation is
-            drawn again from the stored generator state, so the cursor continues with the same
-            indices it would have produced originally. ``last_idx`` is not restored, a ``peek``
-            directly after loading raises until the next ``sample``.
+        """
+        Restore the iteration state produced by ``state_dict``. The current permutation is
+        drawn again from the stored generator state, so the cursor continues with the same
+        indices it would have produced originally. ``last_idx`` is not restored, a ``peek``
+        directly after loading raises until the next ``sample``.
 
-            Args:
-                state (dict[str, int | torch.Tensor]): Output of ``state_dict`` of a cursor over the same process.
+        Args:
+            state (dict[str, int | torch.Tensor]): Output of ``state_dict`` of a cursor over the same process.
 
-            Raises:
-                ValueError: If the stored seed differs from the cursor's seed. The state would still
-                    load, but the mismatch signals that the sampler was built with another config.
-            """
-            if state["seed"] != self.seed:
-                raise ValueError(
-                    f"Cursor seed mismatch for {self.process.uid}: stored {state['seed']}, cursor has {self.seed}."
-                )
-            self.generator.set_state(state["generator_state"])
-            self.reset()
-            self.current_idx = state["current_idx"]
+        Raises:
+            ValueError: If the stored seed differs from the cursor's seed. The state would still
+            load, but the mismatch signals that the sampler was built with another config.
+        """
+        if state["seed"] != self.seed:
+            raise ValueError(
+                f"Cursor seed mismatch for {self.process.uid}: stored {state['seed']}, cursor has {self.seed}."
+            )
+        self.generator.set_state(state["generator_state"])
+        self.reset()
+        self.current_idx = state["current_idx"]
 
     def sample_wrong(
         self, sample_from: tuple[str, ...], number: int = None, device=CPU_DEVICE
