@@ -123,7 +123,6 @@ def main(**kwargs):
 
         # load calculated sampler from training sampler to validation sampler
         validation_sampler.load_process_weights_from(training_sampler)
-
         # calculate or load statistic of DATA used to for training, this information is necessary for standardization.
         feature_statistic_cache = FeatureStatisticCache(
             dataset_config=full_config.dataset_config,
@@ -132,6 +131,7 @@ def main(**kwargs):
             return_dummy=full_config.debug_config.get_batch_statistic_return_dummy,
             verbose=True,
         )
+        from IPython import embed; embed(header="MESSAGE Line 124 | File: /afs/desy.de/user/w/wiedersb/xxl/pytorch_network_playground/src/bbTT/train/train.py")
         full_config.model_building_config.standardization.mean = feature_statistic_cache.mean
         full_config.model_building_config.standardization.std = feature_statistic_cache.std
 
@@ -219,9 +219,7 @@ def main(**kwargs):
             # ----
             #### Evaluation of training and validation data, logging and checkpointing
             # ----
-            evaluation_condition = (
-                current_iteration % full_config.record_config.validation_interval == 0
-            ) & (current_iteration >= 0)
+            evaluation_condition = (current_iteration % full_config.record_config.validation_interval == 0)
             if evaluation_condition:
                 # evaluation of training data
                 logger_inst.info(
