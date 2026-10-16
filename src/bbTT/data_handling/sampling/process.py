@@ -14,9 +14,10 @@ logger_inst = get_logger(__name__)
 
 class Process(t_data.Dataset):
     """
-    Stateless container for all data belonging to one process (process_id, process_type).
+    Container for all data belonging to one process (process_id, process_type).
     Knows its own data/weights/statistics and how to gather a batch from itself.
-    Holds NO cursor/iteration state — that lives in ProcessSampleCursor.
+    Holds NO cursor/iteration state — that lives in ProcessSampleCursor. The only mutable
+    value is ``sample_size``, which ProcessSampler rewrites before every batch.
     """
 
     def __init__(
@@ -65,8 +66,13 @@ class Process(t_data.Dataset):
         self.process_type = process_type
         self.sample_size = len(self)
 
-        # cross-process bookkeeping set by ProcessSampler.calculate_sample_size;
-        # only exist to write into, default is set 0
+        # cross-process bookkeeping set by ProcessSampler.calculate_sample_size, defaults are placeholders:
+        #    sample_size: events this process contributes to the NEXT batch, redrawn per batch for stochastic rounding
+        #    expected_sample_size: expectation of sample_size under the rounding strategy, fixed for a run
+        #    relative_weight: ideal share of the batch before rounding, fixed for a run
+        #    post_relative_weight: expected share of the batch under the rounding strategy, fixed for a run
+        self.sample_size: int = len(self)
+        self.expected_sample_size: float = float(len(self))
         self.relative_weight: Optional[float] = 0
         self.post_relative_weight: Optional[float] = 0
 

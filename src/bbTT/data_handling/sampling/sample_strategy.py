@@ -29,6 +29,22 @@ class RoundingStrategy(ABC):
             exactly to round(exact.sum()).
         """
 
+    @abstractmethod
+    def expected(self, exact: torch.Tensor) -> torch.Tensor:
+        """
+        Expected count per pid when ``round`` is called repeatedly on *exact*.
+
+        Kept next to ``round`` because only the strategy knows whether its rounding is
+        unbiased. The expected count is what a loss evaluated on unsampled data has to
+        reproduce, so it must not depend on a single draw.
+
+        Args:
+            exact (torch.Tensor): Ideal (possibly fractional) count per pid.
+
+        Returns:
+            torch.Tensor: Expected count per pid, same length and dtype as exact.
+        """
+
 
 class LargestRemainderRounding(RoundingStrategy):
     """
@@ -42,6 +58,10 @@ class LargestRemainderRounding(RoundingStrategy):
 
     def __init__(self, min_size: int = 0):
         self.min_size = min_size
+
+    def expected(self, exact: torch.Tensor) -> torch.Tensor:
+        # deterministic: every call returns the same counts, so the expectation is the rounding itself
+        return self.round(exact).to(exact.dtype)
 
     def round(
         self,
@@ -81,6 +101,10 @@ class StochasticRounding(RoundingStrategy):
     def __init__(self, generator: torch.Generator):
         super().__init__()
         self.generator = generator
+
+    def expected(self, exact: torch.Tensor) -> torch.Tensor:
+        # unbiased by construction (see round), so the expectation is the ideal share
+        return exact
 
     def round(self, exact: torch.Tensor) -> torch.Tensor:
         """

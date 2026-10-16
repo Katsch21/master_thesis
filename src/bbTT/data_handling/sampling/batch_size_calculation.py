@@ -86,7 +86,7 @@ class BatchSizeAllocator:
         sub_sample_ratio: dict[str, float],
         sub_batch_size: int,
         sample_ratio_for_type: float,
-    ) -> tuple[dict[str, int], dict[str, float]]:
+    ) -> tuple[dict[str, int], dict[str, float], dict[str, float], dict[str, float]]:
         """
         Args:
             weights_by_pid (dict[str, float]): Cross-section weight per process id.
@@ -95,12 +95,13 @@ class BatchSizeAllocator:
             sub_batch_size (int): Events to allocate across all pids.
             sample_ratio_for_type (float): Parent-level share this sub-batch
                 belongs to, folded into relative_weights.
-            generator (torch.Generator, optional): For reproducible draws;
-                ignored by deterministic strategies.
 
         Returns:
-            sizes: process_id -> integer event count, summing exactly to sub_batch_size.
-            relative_weights: process_id -> relative contribution to the batch.
+            sizes: process_id -> integer event count of this draw, summing exactly to sub_batch_size.
+            expected_sizes: process_id -> expected event count under the rounding strategy.
+            relative_weights: process_id -> ideal share of the whole batch, before rounding.
+            post_relative_weights: process_id -> expected share of the whole batch under the
+                rounding strategy. Equal to relative_weights for unbiased strategies.
         """
         pids = list(weights_by_pid.keys())
 
@@ -114,18 +115,21 @@ class BatchSizeAllocator:
         # this is necessary for validation losses. A batch is inflated by oversampling.
         # but validation does not use oversampling inflation, but real one.
         # this is only driven by cross section and sample ratio
-        relative_weights = {pid: (w / total_weight * sample_ratio_for_type).item() for pid, w in zip(pids, raw_weights)}
+        pre_relative_pid_contribution = {pid: (w / total_weight * sample_ratio_for_type).item() for pid, w in zip(pids, raw_weights)}
 
         # normalize by total weights ensures consistent process family number
         exact = sub_batch_size * raw_weights / total_weight
         counts = self.rounding.round(exact)
+        expected_counts = self.rounding.expected(exact)
 
         sizes = {pid: n.item() for pid, n in zip(pids, counts)}
+        expected_sizes = {pid: n.items() for pid, n in zip(pids, expected_counts)}
 
-        # relative contribution of a pid for the batch AFTER apply rounding strategy
-        # depending on the rounding strategy relative_weight does not represent real presence
-        # e.g. flooring (and no stochastic strategy is used), then relative_weight is calculated with wrong quantity
-        post_relative_weights = {
-            pid: (num_per_pid / sub_batch_size * sample_ratio_for_type) for pid, num_per_pid in sizes.items()
+        # share of the whole batch a process is expected to have. Built from the expected and not the drawn
+        # counts, so a stochastic strategy does not freeze one draw into a weight that is used for a whole run
+        # The reasoning behind this is to prevent sudden jumps in evaluation due to statistical fluctuations (even if they are small)
+        post_relative_pid_contribution = {
+            pid: (num_per_pid / sub_batch_size * sample_ratio_for_type) for pid, num_per_pid in expected_sizes.items()
+
         }
-        return sizes, relative_weights, post_relative_weights
+        return sizes, pre_relative_pid_contribution, post_relative_pid_contribution

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import zlib
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable, Optional
 
 import torch
 import torch.utils.data as t_data
-import zlib
 
 from bbTT.data_handling.sampling.batch_size_calculation import BatchSizeAllocator
 from bbTT.data_handling.sampling.process import Process, ProcessSampleCursor
@@ -92,7 +92,8 @@ class ProcessSampler(t_data.Sampler):
 
     shared_attributes = {
         "relative_weight",
-        "post_relative_weight"
+        "post_relative_weight",
+        "expected_sample_size",
     }
 
     def __init__(
@@ -207,10 +208,21 @@ class ProcessSampler(t_data.Sampler):
         logger_inst.debug("Sample rates per process (PID | Sample Size)\n" + msg)
 
     def calculate_sample_size(self, process_type: str):
+        """
+        Draw the per-process event counts of the next batch for one process_type and
+        write them into the processes. Called before every batch by ``sample_batch``.
+        A stochastic rounding strategy gets a fresh draw each time.
+        A deterministic strategy returns the same counts on every call.
+
+        Args:
+            process_type (str): Parent process whose sub-processes are allocated.
+
+        Raises:
+            ValueError: If the batch size is too small to be split.
+        """
         if self.batch_size <= 1:
             raise ValueError("Batch size <= 1 is not supported. Try a number big enough to be representative.")
 
-        logger_inst.info(f"Calculating sample sizes for subprocesses of {process_type}")
         procs_by_pid = self.registry.by_type(process_type)
 
         weights_by_pid = {
@@ -219,7 +231,7 @@ class ProcessSampler(t_data.Sampler):
         sub_batch_size = int(self.batch_size * self.sample_ratio[process_type])
 
         # allocate describes the actual algorithm, can be swapped out freely.
-        sizes, relative_weights, post_relative_weights = self.allocator.allocate(
+        sizes, expected_sizes, relative_weights, post_relative_weights = self.allocator.allocate(
             weights_by_pid=weights_by_pid,
             sub_sample_ratio=self.sub_sample_ratio,
             sub_batch_size=sub_batch_size,
@@ -231,8 +243,13 @@ class ProcessSampler(t_data.Sampler):
             procs_by_pid[pid].relative_weight = rel_w
         for pid, post_rel_w in post_relative_weights.items():
             procs_by_pid[pid].post_relative_weight = post_rel_w
+        for pid, expected_size in expected_sizes.items():
+            procs_by_pid[pid].expected_sample_size = expected_size
 
-        logger_inst.debug(f"{process_type}: {sizes}")
+    def redraw_sample_sizes(self):
+        """Redraw the batch composition of every process_type, see calculate_sample_size."""
+        for process_type in self.registry.process_types:
+            self.calculate_sample_size(process_type=process_type)
 
     def load_process_weights_from(self, other: "ProcessSampler"):
         """
@@ -287,8 +304,10 @@ class ProcessSampler(t_data.Sampler):
 
     def sample_batch(self, sample_from: list[str], device: torch.device = CPU_DEVICE) -> dict[str, torch.Tensor]:
         """
-        Sample cursors sample_size events from every registered process and concatenate together.
+        Redraw the batch composition, then sample ``sample_size`` events from every
+        registered process and concatenate them.
         """
+        self.redraw_sample_sizes()
         return self._aggregate_batch(cursor_method="sample", sample_from=sample_from, device=device)
 
     def peek_batch(self, sample_from: list[str], device: torch.device = CPU_DEVICE) -> dict[str, torch.Tensor]:
