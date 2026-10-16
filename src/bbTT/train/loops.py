@@ -317,7 +317,6 @@ class ValidationLoop(BaseLoop):
             "targets": [],
             "sample_weights": [],
             "loss_predictions": [],
-            "relative_weights": [],
             "post_relative_weights": [],
             "process_id": [],
         }
@@ -345,11 +344,11 @@ class ValidationLoop(BaseLoop):
                 collected_data["targets"].append(events.pop("targets"))
                 collected_data["sample_weights"].append(events.pop("sample_weights"))
 
-                collected_data["relative_weights"].append(
-                    torch.full(size=(class_pred.shape[0], 1), fill_value=current_process.relative_weight, device=device)
-                )
+                # batch share divided by process size: summed over the full pass each process
+                # weighs exactly as much as in a training batch, see Process.per_event_composition_weight
                 collected_data["post_relative_weights"].append(
-                    torch.full(size=(class_pred.shape[0], 1), fill_value=current_process.post_relative_weight, device=device)
+                    current_process.per_event_composition_weight(class_pred.shape[0], denominator=len(current_process)
+                    ).to(device)
                 )
 
                 collected_data["process_id"].append(
@@ -402,7 +401,8 @@ class ValidationLoop(BaseLoop):
             skip_concatenate_columns=("",),
             device=device,
         )
-        # validation needs to be weight by sample weights
+        # validation runs on unsampled data: weighted by batch share / process size so the
+        # loss reproduces the training batch composition and is comparable to the batch loss
         loss = loss_fn_inst(
             tensors["loss_predictions"],
             tensors["targets"],

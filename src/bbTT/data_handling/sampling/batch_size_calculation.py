@@ -110,7 +110,7 @@ class BatchSizeAllocator:
         )
         total_weight = raw_weights.sum()
 
-        # relative contribution to process
+        # expected relative contribution of a pid to process BEFORE apply rounding strategy.
         # this is necessary for validation losses. A batch is inflated by oversampling.
         # but validation does not use oversampling inflation, but real one.
         # this is only driven by cross section and sample ratio
@@ -122,9 +122,10 @@ class BatchSizeAllocator:
 
         sizes = {pid: n.item() for pid, n in zip(pids, counts)}
 
-        # rebuild "share of the whole batch quantity" - the reason for this is an adaptation by the rounding strategy
-        # when e.g. flooring happens (and no stochastic strategy is used), then relative_weight does not represent real presence
+        # relative contribution of a pid for the batch AFTER apply rounding strategy
+        # depending on the rounding strategy relative_weight does not represent real presence
+        # e.g. flooring (and no stochastic strategy is used), then relative_weight is calculated with wrong quantity
         post_relative_weights = {
-            pid: (n / sub_batch_size * sample_ratio_for_type) for pid, n in sizes.items()
+            pid: (num_per_pid / sub_batch_size * sample_ratio_for_type) for pid, num_per_pid in sizes.items()
         }
         return sizes, relative_weights, post_relative_weights

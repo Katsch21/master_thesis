@@ -106,6 +106,30 @@ class Process(t_data.Dataset):
             self.weights_statistics.normalization_whole_sum / denominator,
         )
 
+    def per_event_composition_weight(self, n: int, denominator: int) -> torch.Tensor:
+        """
+        Per-event weight that reproduces the training batch composition on an unsampled set.
+
+        In a training batch this process contributes the share ``post_relative_weight``
+        of all events. On a full pass it contributes ``denominator`` events instead, so
+        every event gets ``post_relative_weight / denominator``: summed over the delivered
+        set the process then carries exactly the weight it has in a batch, which makes a
+        loss over the full set comparable to the (unweighted) batch loss.
+
+        Args:
+            n (int): Number of events in this chunk, i.e. the length of the returned tensor.
+            denominator (int): Total number of events the delivered set consists of, ``len(process)`` for a full pass.
+
+        Returns:
+            torch.Tensor: Shape (n, 1), every entry ``post_relative_weight / denominator``.
+        """
+        return torch.full(
+            (n, 1),
+            self.post_relative_weight / denominator,
+        )
+
+
+
     def gather(
         self,
         idx: torch.Tensor,
