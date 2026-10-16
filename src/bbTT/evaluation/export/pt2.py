@@ -50,7 +50,7 @@ def export_pt2(
     categorical_input = torch.zeros(2, num_cat).to(torch.int32).to(DEVICE)
     continuous_inputs = torch.zeros(2, num_cont).to(torch.float32).to(DEVICE)
 
-    dim = torch.export.Dim("batch")
+    dim = torch.export.Dim("batch", min = 2, max = 1_000_000)
     dynamic_shapes = {
         "categorical_inputs": {0: dim, 1: categorical_input.shape[-1]},
         "continuous_inputs": {0: dim, 1: continuous_inputs.shape[-1]},
