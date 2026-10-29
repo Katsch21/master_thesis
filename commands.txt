@@ -1,2 +1,8 @@
-python -m src.train.train -tn "name"
+python -m src.bbTT.train.train -tn "name"
 python -m src.utils.evaluate --src "name_fold0.pt" --fold 0 -fp "name.parquet" --add_activation identity -e "test" -bs 30000 -nt 20
+
+
+----------------------------------------
+ssh -L 10889:127.0.0.1:8889 naf-cms11
+goDNN
+tensorboard --logdir "/data/dust/user/hergesk/HH_DNN/tensorboard/" --port 8889 --bind_all
