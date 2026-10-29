@@ -1,0 +1,18 @@
+notes on new models, start okt 27
+ref_cosine_test: test NN for cos behaviour
+    Viel besseres Verhalten LR-Loss
+
+Vergleich scheduler:
+cos_scheduler
+    Sieht nicht schlecht aus, aber cos ist schwierig so zu wählen, dass LR nicht wieder hoch geht
+step_scheduler
+    start 3e-3
+    500, gamma = 0.5 
+    -> lr fällt viel zu schnell ab
+step_scheduler2
+    start 3e-3
+    800, gamma = 0.8 
+    -> lernt langsamer als version 1; lr darf größer bleiben!
+step_scheduler3
+    start 3e-3
+    600, gamma = 0.4
