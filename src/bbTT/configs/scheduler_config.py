@@ -11,14 +11,14 @@ WARMUP_CHOICE = Literal["linear", "cosine"] # warm-up curves, implemented in bbT
 
 @dataclass
 class StepLRConfig:  # used by marcel
-    step_size: int = 8000  # number of iterations between two learning rate reductions
-    gamma: float = 0.5  # learning rate reduction factor
+    step_size: int = 600  # number of iterations between two learning rate reductions
+    gamma: float = 0.4  # learning rate reduction factor
 
 
 @dataclass
 class CosineAnnealingLRConfig:
     T_max: int = 5000  # maximum number of iterations
-    eta_min: float = 1e-9  # minimum learning rate
+    eta_min: float = 1e-5  # minimum learning rate
 
 @dataclass
 class HalfCosineLRConfig:
