@@ -10,14 +10,14 @@ SCHEDULER_CHOICE = Literal["linear", "cosine_annealing", "reduce_on_plateau", "s
 
 @dataclass
 class StepLRConfig:  # used by marcel
-    step_size: int = 8000  # number of iterations between two learning rate reductions
-    gamma: float = 0.5  # learning rate reduction factor
+    step_size: int = 600  # number of iterations between two learning rate reductions
+    gamma: float = 0.4  # learning rate reduction factor
 
 
 @dataclass
 class CosineAnnealingLRConfig:
     T_max: int = 5000  # maximum number of iterations
-    eta_min: float = 1e-9  # minimum learning rate
+    eta_min: float = 1e-5  # minimum learning rate
 
 
 @dataclass
@@ -35,7 +35,7 @@ class ReduceLROnPlateauConfig:
 class LinearLRConfig:
     start_factor: float = 1e-4  # the initial learning rate will be the start_factor times the base learning rate
     end_factor: float = 1.0  # the final learning rate will be the end_factor times the base learning rate
-    total_iters: int = 1000  # number of iterations over which the multiplier increases from start_factor to end_factor
+    total_iters: int = 200  # number of iterations over which the multiplier increases from start_factor to end_factor
 
 
 @dataclass
