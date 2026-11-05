@@ -33,3 +33,14 @@ weighting_211
 # with overweighting fh as well:
 w_1p51_fh_10
     Iteration: 16350 - TLoss: 2.51E-01 VLoss: 2.55E-01
+
+
+
+---------------------------------------
+# weighted decay x ini LR scan:
+test_patience
+    weight_decay: float = 1.83e-5
+    lr: float = 1e-2
+scan_smalllambda
+    weight_decay: float = 1.83e-6
+    lr: float = 1e-2
