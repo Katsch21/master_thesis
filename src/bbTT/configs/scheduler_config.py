@@ -10,8 +10,8 @@ SCHEDULER_CHOICE = Literal["linear", "cosine_annealing", "reduce_on_plateau", "s
 
 @dataclass
 class StepLRConfig:  # used by marcel
-    step_size: int = 600  # number of iterations between two learning rate reductions
-    gamma: float = 0.4  # learning rate reduction factor
+    step_size: int = 700  # number of iterations between two learning rate reductions
+    gamma: float = 0.5  # learning rate reduction factor
 
 
 @dataclass
@@ -23,11 +23,11 @@ class CosineAnnealingLRConfig:
 @dataclass
 class ReduceLROnPlateauConfig:
     mode: str = "min"  # min or max. min = lr reduces when the quantity monitored has stopped decreasing
-    patience: int = 10  # wait x number of checks - Marcel: 10
+    patience: int = 12  # wait x number of checks - Marcel: 10
     threshold_mode: str = "abs"  # type of min_delta - Marcel: abs
-    factor: float = 0.5  # LR reduce by factor
+    factor: float = 0.7  # LR reduce by factor
     cooldown: int = 0  # number of iterations to wait after a learning rate reduction before resuming normal operation
-    min_lr: float = 1e-8  # lower bound on the learning rate
+    min_lr: float = 1e-6  # lower bound on the learning rate
     eps: float = 1e-08  # minimal decay applied to lr, if it is smaller than this value, it is set to this value
 
 
@@ -57,7 +57,9 @@ SCHEDULER_REGISTRY = {
 class SchedulerConfig:
     scheduler_chain: tuple[SCHEDULER_CHOICE, ...] = ("reduce_on_plateau",) # schedulers used in chain
     # scheduler_chain: tuple[SCHEDULER_CHOICE, ...] = ("linear", "reduce_on_plateau")  # schedulers used in chain
-    milestones: tuple[int, ...] = (1000,)  # intervals after which the LR scheduler is swapped
+    milestones: tuple[int, ...] = ()  # intervals after which the LR scheduler is swapped
+    # milestones: tuple[int, ...] = (200,)  # intervals after which the LR scheduler is swapped
+
     config_chain: Optional[tuple[Any, ...]] = (
         None  # list of configs corresponding to the schedulers in the scheduler chain
     )
