@@ -3,16 +3,33 @@ ref_cosine_test: test NN for cos behaviour
     Viel besseres Verhalten LR-Loss
 
 Vergleich scheduler:
-cos_scheduler
-    Sieht nicht schlecht aus, aber cos ist schwierig so zu wählen, dass LR nicht wieder hoch geht
-step_scheduler
+red_scheduler
     start 3e-3
-    500, gamma = 0.5 
-    -> lr fällt viel zu schnell ab
-step_scheduler2
+    redonplat, patience=10, gamma=0.5
+    Iteration: 12150 - TLoss: 2.53E-01 VLoss: 2.55E-01
+red_scheduler2 (***)
     start 3e-3
-    800, gamma = 0.8 
-    -> lernt langsamer als version 1; lr darf größer bleiben!
-step_scheduler3
-    start 3e-3
-    600, gamma = 0.4
+    redonplat, patience=12, gamma=0.7
+red_scheduler3
+    start 1e-3
+    redonplat, patience=10, gamma=0.8
+----------------------------------
+# stick to red_scheduler2, change min LR to 1e-6
+
+weighting_11p51
+    Iteration: 15090 - TLoss: 2.52E-01 VLoss: 2.55E-01
+weighting_121
+    wurde in train_config leider 112 genannt
+    Iteration: 6840 - TLoss: 2.62E-01 VLoss: 2.64E-01
+    lernt weniger lang und auch schlechter als 11p51
+weighting_1p511
+    Trainiert von allen re-weightings am besten
+    Iteration: 17100 - TLoss: 2.43E-01 VLoss: 2.47E-01
+weighting_211
+    Trainiert ausgesprochen gut!
+    Iteration: 11400 - TLoss: 2.47E-01 VLoss: 2.49E-01
+
+----------------------------------
+# with overweighting fh as well:
+w_1p51_fh_10
+    Iteration: 16350 - TLoss: 2.51E-01 VLoss: 2.55E-01
