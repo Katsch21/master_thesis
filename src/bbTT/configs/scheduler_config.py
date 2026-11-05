@@ -11,8 +11,8 @@ WARMUP_CHOICE = Literal["linear", "cosine"] # warm-up curves, implemented in bbT
 
 @dataclass
 class StepLRConfig:  # used by marcel
-    step_size: int = 600  # number of iterations between two learning rate reductions
-    gamma: float = 0.4  # learning rate reduction factor
+    step_size: int = 700  # number of iterations between two learning rate reductions
+    gamma: float = 0.5  # learning rate reduction factor
 
 
 @dataclass
@@ -35,9 +35,9 @@ class ReduceLROnPlateauConfig:
     mode: str = "min"  # min or max. min = lr reduces when the quantity monitored has stopped decreasing
     patience: int = 3  # wait x number of checks without confirmed improvement - Marcel: 10
     threshold_mode: str = "abs"  # type of min_delta - Marcel: abs
-    factor: float = 0.5  # LR reduce by factor
+    factor: float = 0.7  # LR reduce by factor
     cooldown: int = 0  # number of iterations to wait after a learning rate reduction before resuming normal operation
-    min_lr: float = 1e-8  # lower bound on the learning rate
+    min_lr: float = 1e-6  # lower bound on the learning rate
     eps: float = 1e-08  # minimal decay applied to lr, if it is smaller than this value, it is set to this value
     threshold: float = 1e-4  # minimum change of the confirmed best loss to count as improvement (torch default)
 
