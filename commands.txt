@@ -1,6 +1,5 @@
-python -m src.bbTT.train.train -tn "name"
-python -m src.bbTT.evaluation.evaluate -c_src "${MODELS_DIR}/red_scheduler2_fold0.pt" --fold "0" --save_dst weighting_111 --add_activation None -bs 30000 -nt 20
-
+python src/bbTT/train/train.py -tn "name"
+python src/bbTT/evaluation/evaluate.py -c_src "${MODELS_DIR}/test_patience_fold0.pt" --fold "0" --save_dst test_patience --add_activation identity -bs 30000 -nt 20
 ----------------------------------------
 ssh -L 10889:127.0.0.1:8889 naf-cms11
 goDNN
