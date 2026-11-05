@@ -37,7 +37,7 @@ class SamplerConfig:
     sub_process_ratios: dict[str, float] = field(
         default_factory=lambda: {
             "signal": {},  # empty categorizes are set to 1 by default
-            "tt": {1200: 1.5, 1100: 1, 1300: 10},  # groups are possible, and mixes are allowed
+            "tt": {1200: 2, 1100: 1, 1300: 1},  # groups are possible, and mixes are allowed
             # 1200: dl, 1100: sl, 1300: fh
             "dy": {
                 51667: 1,
@@ -83,7 +83,10 @@ class SamplerConfig:
         }
     )  # amplify the subprocess xsec for the sampler only
 
-    use_sub_process_ratios: tuple[str] = ()  # which sub_process_ratios are chosen
+    use_sub_process_ratios: tuple[str] = (
+        "signal", "tt", "dy"
+    )  # which sub_process_ratios are chosen
+
     sample_attributes: tuple[str, ...] = (
         "continuous",
         "categorical",
