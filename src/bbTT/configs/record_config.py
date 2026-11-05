@@ -23,6 +23,7 @@ class RecordConfig:
     # --- Monitoring settings ---
     batch_metrics: bool = False  # if batch metrics should be tracked, this is only for debugging and not used in production
     log_metrics: bool = True  # log metrics to tensorboard during training
+<<<<<<< HEAD
 
     # full pass over the training data is pure monitoring but costs ~4x a validation pass.
     training_evaluation_interval: int = 5 # 1 = every validation pass, 2 = every second etc.
@@ -71,3 +72,7 @@ class RecordConfig:
             "Loss/Validation VLoss": "loss",
         }
     )
+=======
+    verbose_interval: int = 5  # interval between two logger training status print outs
+    validation_interval: int = 500  # interval between two validation passes / plots are done during validation
+>>>>>>> 86f6fbf (changed validation interval to a much larger value (from 30 to 500), because batch size is so much smaller now and validation should not happen too often)
