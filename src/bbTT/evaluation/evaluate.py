@@ -178,10 +178,10 @@ if __name__ == "__main__":
     events = io.get_data(full_config.dataset_config, rebuild_cache=False, save_cache=False)
     # evaluate data on each part separate and then flush scores
     for evaluate_on in args.evaluate_on:
-        stem = args.file_path.stem
-        suffix = args.file_path.suffix
+        stem = args.path.stem
+        suffix = args.path.suffix
 
-        path = args.file_path.with_stem(f"{used_data_hash}_{model_name}_{evaluate_on}_{stem}").with_suffix(suffix)
+        path = args.path.with_stem(f"{used_data_hash}_{model_name}_{evaluate_on}_{stem}").with_suffix(suffix)
 
         evaluated_data = evaluate_model_on_fold(
             model_inst=model_inst,
