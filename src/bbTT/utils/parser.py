@@ -217,7 +217,7 @@ class ParserBuilder:
         """
         try:
             number = int(value)
-        except ValueError
+        except ValueError:
             raise argparse.ArgumentTypeError(f"expected an integer, got '{value}'")
         if number < 0:
             raise argparse.ArgumentTypeError(f"must be >= 0, got {number}")
