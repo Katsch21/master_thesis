@@ -1,0 +1,10 @@
+General model optimizations
+
+- find a suitable scheduler (+ try parameters: patience, ...)
+- find checkpoint criterion
+- weight decay vs ini LR: coupled/decoupled? Which value works well? (-> scanning ), 2d heatmap from paper / bogdans presentation (nov)
+    --> explain regularization: l2 (standard gradient descent) vs adam (weight decay)
+- batch norm: epsilon/momentum(moving average) anpassen (nov 25)
+
+
+- future: add pre-training (fastsim)?
