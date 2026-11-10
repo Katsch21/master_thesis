@@ -38,9 +38,33 @@ w_1p51_fh_10
 
 ---------------------------------------
 # weighted decay x ini LR scan:
-test_patience
-    weight_decay: float = 1.83e-5
-    lr: float = 1e-2
-scan_smalllambda
-    weight_decay: float = 1.83e-6
-    lr: float = 1e-2
+scan_small_lr
+    lr = 5e-4
+    train und val loss komplett voneinander getrennt. Schlechtes Training
+scan_med_lr
+    lr = 1e-3
+    Lernt besser, aber weiterhin train/val getrennt und sehr komische shape am Ende!
+scan_large_lr
+    lr = 5e-3
+    lernt besser, aber weiterhin weirde shape
+scan_vlarge_lr
+    lr = 1e-2
+    Schreckliche Fluktuationen
+
+---------------------------------------
+# tests weight decay:
+no_weight_decay
+    weight_decay = 0
+    lr = 1e-2
+weight_decay_coupled
+    weight_decay = 1.83e-5, aber coupled (deshalb 2 größenordnungen größer)
+    lr = 1e-2
+    sieht sehr ähnlich aus zu no_weight_decay, selbe Größe der Fluktuationen, loss etwas größer
+---------------------------------------
+# fluktuationen waren überall super groß. deshalb jetzt: trainings mit passender LR --> fluktuationen minimieren. Dann weitere parameter variieren
+test_better_lr_with_wd
+    lr = 3e-3
+    weight_decay = 1.83e-5, aber coupled
+test_better_lr_with_small_wd
+    lr = 3e-3
+    weight_decay = 1.83e-4, aber coupled
