@@ -70,6 +70,31 @@ cd ${DNN_ROOT}
 python src/bbTT/train/train.py -tn my_first_run -s -rc
 ```
 
+### Train on the NAF batch system (HTCondor)
+`condor/submit_training.sh` submits one training as HTCondor job, run it on a NAF login node after `source setup.sh`.
+The current state of `src/` (configs and uncommitted changes included) is copied into the job directory
+`${STORE_DIR}/condor/<name>` and the job trains with this copy.
+Editing the configs after a submission does not change queued or running jobs,
+so several trainings can be prepared one after another: adapt the configs, submit, adapt the configs, submit, ...
+
+```bash
+bash condor/submit_training.sh my_first_job                    # 1 GPU, 4 CPU, 16 GB, 24 h
+bash condor/submit_training.sh --gpus 0 --cpus 8 --runtime 48 my_cpu_job
+bash condor/submit_training.sh my_job -- -rc                   # arguments after -- are passed to train.py
+bash condor/submit_training.sh --help                          # all options
+condor_q                                                       # status of your jobs
+```
+
+Things to know:
+- `<name>` names the job directory and the tensorboard run, the checkpoints are named after `TrainingConfig.save_model_name`.
+  It must differ between trainings, otherwise they overwrite each other; the submission is refused if a checkpoint or another job directory already uses it.
+- Jobs do not write the data cache (`-ns`), since parallel jobs would write the same files at the same time.
+  Fill the cache once before, by an interactive training or one job with `--save-cache`, then submit the others.
+- A job with a requested GPU aborts if torch does not see one, instead of silently training on the CPU.
+- Job output is written to `job.out`/`job.err` in the job directory, `job.log` contains the HTCondor events including the used memory.
+  `git_state.txt` and `git_diff.patch` record which code was used.
+- Set `CONDOR_JOB_ROOT` (e.g. in `config.sh`) to put the job directories somewhere else.
+
 ### Evaluate your model
 A trained model is saved in a checkpoint.
 To evaluate it on either "test", "training" or "validation" set use `evaluate.py`.
