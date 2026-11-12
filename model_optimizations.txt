@@ -8,3 +8,7 @@ General model optimizations
 
 
 - future: add pre-training (fastsim)?
+
+
+important things to describe, maybe show plots in thesis
+- embedding

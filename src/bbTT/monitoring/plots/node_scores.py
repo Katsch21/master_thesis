@@ -27,7 +27,6 @@ def plot_network_predictions(
 ) -> tuple[Figure, Axes]:
     # create a figure with one subplot per node, showing the score distribution
     # nodes are ordered by target_map
-
     y_true = ctx.targets
     y_pred = ctx.predictions
     target_map = ctx.target_map
@@ -125,6 +124,7 @@ def _plot_signal_node_scores(
     Returns:
         tuple[Figure, numpy.ndarray]: the figure and its array of 2 axes.
     """
+
     y_true, y_pred, target_map, signal_idx, background_names = _split_signal_background(ctx, signal)
 
     if transform is not None:
