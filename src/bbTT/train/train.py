@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # standard imports
 import dataclasses
+import sys
 
 # package imports
 import numpy as np
@@ -383,9 +384,11 @@ def main(**kwargs):
                     model_inst, optimizer_inst, metric=eval_v_loss
                 )
 
-        from IPython import embed
+        # interactive check only with a terminal, a batch job would wait here forever
+        if sys.stdin.isatty():
+            from IPython import embed
 
-        embed(header="Training ends: Check if everything is as you thought it would be")
+            embed(header="Training ends: Check if everything is as you thought it would be")
 
 
 if __name__ == "__main__":
