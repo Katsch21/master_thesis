@@ -1,0 +1,70 @@
+notes on new models, start okt 27
+ref_cosine_test: test NN for cos behaviour
+    Viel besseres Verhalten LR-Loss
+
+Vergleich scheduler:
+red_scheduler
+    start 3e-3
+    redonplat, patience=10, gamma=0.5
+    Iteration: 12150 - TLoss: 2.53E-01 VLoss: 2.55E-01
+red_scheduler2 (***)
+    start 3e-3
+    redonplat, patience=12, gamma=0.7
+red_scheduler3
+    start 1e-3
+    redonplat, patience=10, gamma=0.8
+----------------------------------
+# stick to red_scheduler2, change min LR to 1e-6
+
+weighting_11p51
+    Iteration: 15090 - TLoss: 2.52E-01 VLoss: 2.55E-01
+weighting_121
+    wurde in train_config leider 112 genannt
+    Iteration: 6840 - TLoss: 2.62E-01 VLoss: 2.64E-01
+    lernt weniger lang und auch schlechter als 11p51
+weighting_1p511
+    Trainiert von allen re-weightings am besten
+    Iteration: 17100 - TLoss: 2.43E-01 VLoss: 2.47E-01
+weighting_211
+    Trainiert ausgesprochen gut!
+    Iteration: 11400 - TLoss: 2.47E-01 VLoss: 2.49E-01
+
+----------------------------------
+# with overweighting fh as well:
+w_1p51_fh_10
+    Iteration: 16350 - TLoss: 2.51E-01 VLoss: 2.55E-01
+
+
+
+---------------------------------------
+# weighted decay x ini LR scan:
+scan_small_lr
+    lr = 5e-4
+    train und val loss komplett voneinander getrennt. Schlechtes Training
+scan_med_lr
+    lr = 1e-3
+    Lernt besser, aber weiterhin train/val getrennt und sehr komische shape am Ende!
+scan_large_lr
+    lr = 5e-3
+    lernt besser, aber weiterhin weirde shape
+scan_vlarge_lr
+    lr = 1e-2
+    Schreckliche Fluktuationen
+
+---------------------------------------
+# tests weight decay:
+no_weight_decay
+    weight_decay = 0
+    lr = 1e-2
+weight_decay_coupled
+    weight_decay = 1.83e-5, aber coupled (deshalb 2 größenordnungen größer)
+    lr = 1e-2
+    sieht sehr ähnlich aus zu no_weight_decay, selbe Größe der Fluktuationen, loss etwas größer
+---------------------------------------
+# fluktuationen waren überall super groß. deshalb jetzt: trainings mit passender LR --> fluktuationen minimieren. Dann weitere parameter variieren
+test_better_lr_with_wd
+    lr = 3e-3
+    weight_decay = 1.83e-5, aber coupled
+test_better_lr_with_small_wd
+    lr = 3e-3
+    weight_decay = 1.83e-4, aber coupled

@@ -18,7 +18,7 @@ class StepLRConfig:  # used by marcel
 @dataclass
 class CosineAnnealingLRConfig:
     T_max: int = 5000  # maximum number of iterations
-    eta_min: float = 1e-9  # minimum learning rate
+    eta_min: float = 1e-5  # minimum learning rate
 
 @dataclass
 class HalfCosineLRConfig:
@@ -33,11 +33,11 @@ class ReduceLROnPlateauConfig:
     # (see SchedulerHandler and CheckpointConfig). It only changes when a checkpoint is confirmed, so `patience`
     # counts validations without a confirmed improvement and `threshold` is applied on top of CheckpointConfig.delta.
     mode: str = "min"  # min or max. min = lr reduces when the quantity monitored has stopped decreasing
-    patience: int = 3  # wait x number of checks without confirmed improvement - Marcel: 10
+    patience: int = 4  # wait x number of checks - Marcel (old setup): 10, with small batch size: must be much smaller now!
     threshold_mode: str = "abs"  # type of min_delta - Marcel: abs
-    factor: float = 0.5  # LR reduce by factor
+    factor: float = 0.7  # LR reduce by factor
     cooldown: int = 0  # number of iterations to wait after a learning rate reduction before resuming normal operation
-    min_lr: float = 1e-8  # lower bound on the learning rate
+    min_lr: float = 1e-6  # lower bound on the learning rate
     eps: float = 1e-08  # minimal decay applied to lr, if it is smaller than this value, it is set to this value
     threshold: float = 1e-4  # minimum change of the confirmed best loss to count as improvement (torch default)
 
