@@ -12,7 +12,7 @@ SAMPLING_STRATEGY = Literal["largest_remainder", "stochastic"]
 @dataclass
 class TrainingConfig:
     model_choice: MODEL_CHOICE = "lbn_dense"
-    max_train_iteration: int = 500_000  # max number of batches
+    max_train_iteration: int = 20_000  # max number of batches
     label_smoothing: float = 0.0
     train_folds: tuple[int, ...] = (0,)  # which training folds to use
     k_fold: int = 5

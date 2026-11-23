@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+# Thin wrapper, the logic lives in bbTT.tools.cache_ls.
+import sys
+
+from bbTT.tools.cache_ls import main
+
+sys.exit(main())

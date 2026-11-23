@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+# Thin wrapper, the logic lives in bbTT.tools.config_hash.
+import sys
+
+from bbTT.tools.config_hash import main
+
+sys.exit(main())

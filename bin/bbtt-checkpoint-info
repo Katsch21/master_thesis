@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+# Thin wrapper, the logic lives in bbTT.tools.checkpoint_info.
+import sys
+
+from bbTT.tools.checkpoint_info import main
+
+sys.exit(main())

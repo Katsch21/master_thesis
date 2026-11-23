@@ -19,6 +19,10 @@ if TYPE_CHECKING:
 
 logger_inst = get_logger(__name__)
 
+# origins of Optional[X] / Union[X, Y]; "X | None" (types.UnionType) exists from python 3.10 on, the project allows 3.9
+UNION_ORIGINS: tuple[Any, ...] = (typing.Union, getattr(types, "UnionType", typing.Union))
+
+
 # Which config attributes are protected from overrides
 # Expected Style: {"WHAT IS FORBIDDEN": "WHY IT IS FORBIDDEN"}
 # whole config is possible, e.g. "model_building_config"
@@ -155,7 +159,7 @@ def _coerce(value: str, hint: Any) -> Any:
     origin, args = typing.get_origin(hint), typing.get_args(hint)
 
     # Optional[X] / X | None: strip the None and recurse on the remaining type
-    if origin in (typing.Union, types.UnionType):
+    if origin in UNION_ORIGINS:
         if value.lower() in ("none", "null"):
             return None
         remaining = [a for a in args if a is not type(None)]

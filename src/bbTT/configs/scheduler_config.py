@@ -23,8 +23,8 @@ class CosineAnnealingLRConfig:
 @dataclass
 class HalfCosineLRConfig:
     # modification of cosine annealing, cosine decay that stays at eta_min instead of rising again
-    T_max: int = 5000  # iterations of the half wave, counted from the end of the warm-up
-    eta_min: float = 1e-9  # absolute learning rate reached after T_max and kept from then on
+    T_max: int = 16500  # iterations of the half wave, counted from the end of the warm-up
+    eta_min: float = 1e-5  # absolute learning rate reached after T_max and kept from then on
 
 
 @dataclass
@@ -61,7 +61,7 @@ SCHEDULER_REGISTRY = {
 class SchedulerConfig:
     # --- Main Config ---
     # main scheduler, takes over after the warm-up (or from the start without one)
-    scheduler_choice: SCHEDULER_CHOICE = "reduce_on_plateau"
+    scheduler_choice: SCHEDULER_CHOICE = "half_cosine"
 
     # --- WarmUp Config ---
     # warm-up curve, None disables the warm-up. Optional[...] instead of "| None": from_dict evaluates the hints
