@@ -10,21 +10,22 @@
 # therefore does not change queued or running jobs, so trainings can be prepared one after another:
 # adapt the configs, submit, adapt the configs, submit, ...
 #
-# <name> names the job directory and the tensorboard run (-tn).
-# Checkpoints are named after TrainingConfig.save_model_name instead, so it must differ between trainings.
+# <name> names the job directory, the tensorboard run (-tn) and the saved model name.
+# <checkpoint_name> is important for resuming an old training from a given checkpoint with new configs. If not provided, it defaults to <name>.
 # The submission is refused if a checkpoint or another job directory already uses this save_model_name.
 #
 # Options:
-#   --gpus N       number of GPUs, 0 trains on CPU (default: 1)
-#   --cpus N       number of CPU cores (default: 4)
-#   --memory N     memory in GB (default: 16)
-#   --runtime N    maximum runtime in hours (default: 24)
-#   --save-cache   write the preprocessed data to the cache. By default jobs pass -ns to train.py, since
-#                  parallel jobs would write the same cache files at the same time. Fill the cache once
-#                  before (interactive training or one job with --save-cache), then submit the others.
-#   --force        submit even if save_model_name is already used by a checkpoint or another job
-#   --dry-run      create the job directory and submit file, but do not submit
-#   -h, --help     show this help
+#   --gpus N            number of GPUs, 0 trains on CPU (default: 1)
+#   --cpus N            number of CPU cores (default: 4)
+#   --memory N          memory in GB (default: 16)
+#   --runtime N         maximum runtime in hours (default: 24)
+#   -rc                 write the preprocessed data to the cache. By default jobs pass -ns to train.py, since
+#                       parallel jobs would write the same cache files at the same time. Fill the cache once
+#                       before (interactive training or one job with --save-cache), then submit the others.
+#   --force             submit even if save_model_name is already used by a checkpoint or another job
+#   --dry-run           create the job directory and submit file, but do not submit
+#   --checkpoint-name   creates the checkpoint name, which is important for resuming an old training from a given checkpoint with new configs.
+#   -h, --help          show this help
 #
 # Everything after '--' is passed on to train.py, e.g. '-- -rc' to rebuild the cache.
 #
@@ -60,6 +61,8 @@ save_cache=0
 force=0
 dry_run=0
 name=""
+checkpoint_name=""
+
 train_args=()
 
 while [[ $# -gt 0 ]]; do
@@ -68,13 +71,15 @@ while [[ $# -gt 0 ]]; do
         --cpus) cpus="$2"; shift 2 ;;
         --memory) memory="$2"; shift 2 ;;
         --runtime) runtime="$2"; shift 2 ;;
-        --save-cache) save_cache=1; shift ;;
+        -rc) save_cache=1; shift ;;
         --force) force=1; shift ;;
         --dry-run) dry_run=1; shift ;;
         -h|--help) usage; exit 0 ;;
+        -sn) checkpoint_name="$2"; shift 2 ;;
         --) shift; train_args=("$@"); break ;;
         -*) echo "[ERROR] Unknown option $1, see --help" >&2; exit 1 ;;
         *)
+            # if variable <name> is already set, print error:
             if [[ -n "${name}" ]]; then
                 echo "[ERROR] Got a second name '$1', train.py arguments go after '--'" >&2
                 exit 1
@@ -99,6 +104,11 @@ fi
 if [[ ! "${name}" =~ ^[A-Za-z0-9._-]+$ ]]; then
     echo "[ERROR] The name may only contain letters, digits, '.', '_' and '-', got '${name}'" >&2
     exit 1
+fi
+
+# --- Default checkpoint_name to name if not provided
+if [[ -z "${checkpoint_name}" ]]; then
+    checkpoint_name="${name}"
 fi
 
 # --- environment
@@ -142,27 +152,29 @@ chmod +x "${job_dir}/run_training.sh"
 git -C "${DNN_ROOT}" diff HEAD > "${job_dir}/git_diff.patch"
 
 # --- save_model_name of the copied configs, decides the names of the checkpoints
-model_name="$(
-    PYTHONPATH="${job_dir}/src${PYTHONPATH:+:${PYTHONPATH}}" python -c \
-        'from bbTT.configs.training_config import TrainingConfig; print(TrainingConfig().save_model_name)' |
-        tail -n 1  # only the printed name, in case an import writes to stdout
-)"
-echo "${model_name}" > "${job_dir}/save_model_name.txt"
+# model_name="$(
+#     PYTHONPATH="${job_dir}/src${PYTHONPATH:+:${PYTHONPATH}}" python -c \
+#         'from bbTT.configs.training_config import TrainingConfig; print(TrainingConfig().save_model_name)' |
+#         tail -n 1  # only the printed name, in case an import writes to stdout
+# )"
+# model_name="${name}"
+save_model_name="${name}"
+echo "${save_model_name}" > "${job_dir}/save_model_name.txt"
 
 if [[ "${force}" == "0" ]]; then
     conflicts=()
-    for checkpoint in "${MODELS_DIR}/${model_name}"_fold*.pt; do
+    for checkpoint in "${MODELS_DIR}/${save_model_name}"_fold*.pt; do
         if [[ -e "${checkpoint}" ]]; then
             conflicts+=("checkpoint ${checkpoint}")
         fi
     done
     for other in "${job_root}"/*/save_model_name.txt; do
-        if [[ -e "${other}" && "${other}" != "${job_dir}/save_model_name.txt" && "$(cat "${other}")" == "${model_name}" ]]; then
+        if [[ -e "${other}" && "${other}" != "${job_dir}/save_model_name.txt" && "$(cat "${other}")" == "${save_model_name}" ]]; then
             conflicts+=("job $(dirname "${other}")")
         fi
     done
     if [[ ${#conflicts[@]} -gt 0 ]]; then
-        echo "[ERROR] save_model_name '${model_name}' is already used by:" >&2
+        echo "[ERROR] save_model_name '${save_model_name}' is already used by:" >&2
         printf '    %s\n' "${conflicts[@]}" >&2
         echo "        Change TrainingConfig.save_model_name or pass --force to overwrite" >&2
         rm -rf "${job_dir}"
@@ -175,8 +187,12 @@ if [[ "${save_cache}" == "0" ]]; then
     train_args=("-ns" ${train_args[@]+"${train_args[@]}"})
 fi
 
+# Pass save_model_name and checkpoint name to train.py
+train_args+=("--save_model_name" "${save_model_name}")
+train_args+=("-sn" "${checkpoint_name}")
+
 arguments=""
-for arg in "${DNN_ROOT}" "${job_dir}" "${name}" ${train_args[@]+"${train_args[@]}"}; do
+for arg in "${DNN_ROOT}" "${job_dir}" "${name}" "--save_model_name" "${save_model_name}" ${train_args[@]+"${train_args[@]}"}; do
     arguments+="$(condor_quote "${arg}") "
 done
 
@@ -203,7 +219,8 @@ done
 trap - ERR
 
 echo "[INFO] Job directory: ${job_dir}"
-echo "[INFO] save_model_name: ${model_name}, tensorboard name: ${name}"
+echo "[INFO] save_model_name: ${save_model_name}, tensorboard name: ${name}"
+echo "[INFO] checkpoint_name: ${checkpoint_name}"
 echo "[INFO] Request: ${gpus} GPU, ${cpus} CPU, ${memory} GB, ${runtime} h; train.py arguments: ${train_args[*]+${train_args[*]}}"
 
 if [[ "${dry_run}" == "1" ]]; then
